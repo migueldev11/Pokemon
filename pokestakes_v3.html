@@ -1,0 +1,3182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Poké-Stakes: Showdown Edition</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.1/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080f1e;--panel:#0d1730;--line:rgba(255,255,255,.09);
+  --text:#e8f0fe;--muted:#7a90b8;--accent:#4f9eff;
+  --good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--crit:#c084fc;
+  --shadow:0 20px 50px rgba(0,0,0,.4);--r:20px;
+  --font:'Montserrat',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100%;background:radial-gradient(ellipse at top,#0f1e3a 0%,var(--bg) 50%,#03060f 100%);color:var(--text);font-family:var(--font);overflow-x:hidden}
+button,input,select{font:inherit}
+button{border:none;cursor:pointer;transition:transform .1s,filter .12s,opacity .15s;user-select:none;-webkit-tap-highlight-color:transparent}
+button:active:not(:disabled){transform:scale(.96)}
+button:disabled{cursor:not-allowed;opacity:.38;filter:saturate(.4)}
+
+/* ─── LAYOUT ─── */
+.app{width:min(100%,1000px);margin:0 auto;padding:10px;min-height:100vh;display:flex;flex-direction:column;gap:10px}
+
+/* ─── TOPBAR ─── */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r);background:linear-gradient(160deg,rgba(15,28,55,.97),rgba(8,14,30,.97));box-shadow:var(--shadow);backdrop-filter:blur(12px);flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:1px}
+.eyebrow{font-size:.7rem;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;font-weight:800}
+.brand h1{font-size:1.1rem;font-weight:900;line-height:1;background:linear-gradient(135deg,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.topRight{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Rank badge */
+.rankBadge{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:.78rem;font-weight:800}
+.rankIcon{font-size:1rem}
+.coinsBox{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--line);padding:8px 12px;border-radius:14px}
+.coinOrb{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fef08a,#f59e0b 55%,#92400e);box-shadow:0 0 10px rgba(245,158,11,.7);flex:0 0 auto}
+.coinsText{display:flex;flex-direction:column;line-height:1}
+.coinsText strong{font-size:.95rem}
+.coinsText span{font-size:.7rem;color:var(--muted)}
+
+/* ─── SCREENS ─── */
+.screen{display:none;flex-direction:column;gap:10px}
+.screen.active{display:flex}
+
+/* ─── PANEL ─── */
+.panel{background:linear-gradient(160deg,rgba(13,23,48,.97),rgba(6,12,28,.97));border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.025)}
+.sectionHead h2{font-size:.95rem;font-weight:800}
+.sectionMeta{color:var(--muted);font-size:.78rem;font-weight:700}
+
+/* ─── BUTTONS ─── */
+.btn{border-radius:14px;padding:11px 14px;font-weight:800;color:var(--text);border:1px solid var(--line);background:rgba(255,255,255,.06);box-shadow:0 6px 14px rgba(0,0,0,.2)}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btnPrimary{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+.btnSuccess{background:linear-gradient(135deg,#16a34a,#15803d)}
+.btnWarn{background:linear-gradient(135deg,#d97706,#b45309);color:#fff}
+.btnDanger{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+.btnMega{background:linear-gradient(135deg,#7c3aed,#db2777)}
+.btnDex{background:linear-gradient(135deg,#0891b2,#0e7490)}
+
+/* ─── HERO ─── */
+.hero{padding:14px;display:flex;flex-direction:column;gap:10px}
+.heroTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.heroCopy h2{font-size:1rem;margin-bottom:4px}
+.heroCopy p{color:var(--muted);font-size:.85rem;line-height:1.45}
+.heroButtons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+/* ─── RANK PROGRESS ─── */
+.rankProgress{padding:10px 14px;background:rgba(255,255,255,.03);border-top:1px solid var(--line)}
+.rankBar{height:8px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:6px}
+.rankFill{height:100%;border-radius:inherit;transition:width .5s ease;background:linear-gradient(90deg,#7c3aed,#4f9eff)}
+.rankLabels{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);font-weight:700;margin-top:4px}
+
+/* ─── INVENTORY ─── */
+.invGrid{padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.invGrid.hidden{display:none}
+.pokemonCard{position:relative;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:10px;display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s}
+.pokemonCard:hover{transform:translateY(-2px);border-color:rgba(79,158,255,.35)}
+.pokemonCard.selected{border-color:rgba(79,158,255,.8);box-shadow:0 0 0 3px rgba(79,158,255,.15);transform:translateY(-2px)}
+.pokeTop{display:flex;justify-content:space-between;align-items:flex-start}
+.pokeName{font-weight:800;font-size:.88rem;text-transform:capitalize;line-height:1.2}
+.pokeLevel{font-size:.68rem;color:var(--muted);font-weight:700;white-space:nowrap}
+.rarityBadge{font-size:.62rem;font-weight:900;padding:3px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.rarity-common{background:rgba(148,163,184,.15);color:#94a3b8}
+.rarity-rare{background:rgba(79,158,255,.15);color:#60a5fa}
+.rarity-epic{background:rgba(168,85,247,.2);color:#c084fc}
+.rarity-legendary{background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(239,68,68,.2));color:#fcd34d;animation:legendaryPulse 2s ease-in-out infinite}
+@keyframes legendaryPulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px rgba(251,191,36,.4)}}
+.typeRow{display:flex;flex-wrap:wrap;gap:4px}
+.typeChip{font-size:.62rem;font-weight:800;text-transform:uppercase;border-radius:999px;padding:4px 7px;color:white;min-width:44px;text-align:center;letter-spacing:.03em}
+.miniStats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:.68rem;color:var(--muted);margin-top:auto}
+.miniStats b{color:var(--text);display:block;font-size:.78rem}
+.slotLabel{position:absolute;right:10px;bottom:10px;font-size:.66rem;font-weight:800;color:#93c5fd}
+.megaTag{font-size:.62rem;color:#c4b5fd;font-weight:800}
+
+/* ─── TEAM TRAY ─── */
+.selectedTray{padding:12px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.slot{aspect-ratio:1;border-radius:16px;border:1px dashed rgba(255,255,255,.12);background:rgba(255,255,255,.02);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;padding:6px;text-align:center;font-size:.62rem;color:var(--muted);font-weight:700;position:relative;overflow:hidden}
+.slot.filled{border-style:solid;border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text)}
+.slot small{position:absolute;left:5px;top:5px;width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:900}
+
+/* ─── BATTLE SCREEN ─── */
+.battleArea{padding:10px;display:flex;flex-direction:column;gap:10px}
+
+/* Stake banner */
+.stakeBanner{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);border-radius:12px;font-size:.82rem;font-weight:700;flex-wrap:wrap}
+.stakePot{color:#fcd34d;font-weight:900;font-size:.95rem}
+
+/* Arena */
+.arena{position:relative;min-height:400px;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.07);display:grid;grid-template-rows:1fr auto 1fr;align-items:center;justify-items:center;gap:6px;padding:12px}
+.arena::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(120,189,255,.9) 0%,rgba(100,170,245,.85) 38%,rgba(126,206,255,.75) 44%,rgba(76,185,112,.88) 46%,rgba(24,115,50,.96) 100%);z-index:0}
+.arena::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 25% 16%,rgba(255,255,255,.8),transparent 22%),radial-gradient(ellipse at 72% 12%,rgba(255,255,255,.5),transparent 16%);pointer-events:none;z-index:1;opacity:.5}
+
+.weatherBadge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(4px);border-radius:999px;padding:4px 12px;font-size:.7rem;font-weight:800;color:white;z-index:10;white-space:nowrap}
+
+.enemyArea,.playerArea{position:relative;width:100%;display:grid;grid-template-columns:1fr;justify-items:center;z-index:2}
+.enemyArea{align-self:start}
+.playerArea{align-self:end}
+
+.vsTag{position:relative;z-index:2;padding:6px 14px;border-radius:999px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.15);font-weight:900;letter-spacing:.22em;font-size:.78rem}
+
+.nameplate{width:min(100%,320px);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:14px;background:rgba(4,10,24,.38);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(4px);font-size:.88rem;font-weight:800}
+.nameplate span{font-size:.68rem;color:rgba(255,255,255,.75);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.hpWrap{width:min(100%,320px);margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.hpBar{height:12px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.15)}
+.hpFill{height:100%;width:100%;border-radius:inherit;background:linear-gradient(90deg,#22c55e,#84cc16);transition:width .28s ease}
+.hpFill.mid{background:linear-gradient(90deg,#f59e0b,#eab308)}
+.hpFill.low{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.hpText{display:flex;justify-content:space-between;font-size:.7rem;font-weight:700;color:rgba(255,255,255,.88)}
+.statusArea{width:min(100%,320px);display:flex;flex-wrap:wrap;gap:4px;min-height:22px}
+.statusBadge,.buffBadge{padding:3px 7px;border-radius:999px;font-size:.62rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.12)}
+.statusBadge.brn{background:rgba(239,68,68,.2);color:#fecaca}
+.statusBadge.psn{background:rgba(168,85,247,.18);color:#e9d5ff}
+.statusBadge.tox{background:rgba(168,85,247,.3);color:#d8b4fe}
+.statusBadge.slp{background:rgba(99,102,241,.18);color:#c7d2fe}
+.statusBadge.par{background:rgba(250,204,21,.18);color:#fef08a}
+.statusBadge.frz{background:rgba(125,211,252,.22);color:#bae6fd}
+.buffBadge.plus{background:rgba(34,197,94,.17);color:#bbf7d0}
+.buffBadge.minus{background:rgba(239,68,68,.17);color:#fecaca}
+
+.spriteWrap{position:relative;width:min(100%,290px);height:160px;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.spriteWrap img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 16px 10px rgba(0,0,0,.4));transform:translateZ(0);transition:transform .15s}
+.spriteWrap.hitFlash{animation:flashAnim .3s linear}
+.spriteWrap.shake{animation:shakeAnim .35s ease}
+.spriteWrap.megaGlow img{filter:drop-shadow(0 0 22px rgba(168,85,247,.9)) drop-shadow(0 16px 10px rgba(0,0,0,.4))}
+@keyframes flashAnim{0%{filter:brightness(1)}30%{filter:brightness(2) saturate(1.5)}100%{filter:brightness(1)}}
+@keyframes shakeAnim{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes critShakeAnim{0%,100%{transform:translateX(0) scale(1)}15%{transform:translateX(-10px) scale(1.04)}30%{transform:translateX(10px) scale(.97)}50%{transform:translateX(-7px)}70%{transform:translateX(6px)}85%{transform:translateX(-3px)}}
+.spriteWrap.critShake{animation:critShakeAnim .4s ease}
+
+/* turn order badge */
+.turnOrder{position:absolute;top:8px;right:8px;font-size:.64rem;font-weight:900;padding:3px 7px;border-radius:999px;background:rgba(79,158,255,.2);color:#93c5fd;border:1px solid rgba(79,158,255,.3);z-index:10}
+
+/* ─── CONTROLS ─── */
+.controlsArea{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(110px,.75fr);gap:10px;align-items:start}
+.moveGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.moveBtn{min-height:76px;padding:10px;border-radius:16px;text-align:left;font-weight:800;color:white;border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 18px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:3px;justify-content:center;transition:transform .1s,filter .1s}
+.moveBtn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
+.moveBtn .moveMeta{font-size:.62rem;opacity:.85;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.moveBtn .moveName{font-size:.88rem;line-height:1.15;text-transform:capitalize}
+.moveBtn .moveEffect{font-size:.6rem;opacity:.75;font-weight:600;margin-top:1px;line-height:1.2}
+.catIcon{font-size:.7rem}
+.sideActions{display:flex;flex-direction:column;gap:8px}
+.sideActions .btn{width:100%;min-height:46px;border-radius:16px;font-weight:800;font-size:.82rem}
+
+/* ─── LOG ─── */
+.logBox{max-height:190px;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:.85rem;line-height:1.35}
+.logBox::-webkit-scrollbar{width:4px}
+.logBox::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+.logLine{padding-left:14px;position:relative;opacity:.96}
+.logLine::before{content:"•";position:absolute;left:0;font-weight:900}
+.logLine.system::before{color:var(--warn)}
+.logLine.good::before{color:var(--good)}
+.logLine.bad::before{color:var(--bad)}
+.logLine.crit::before{color:var(--crit)}
+.logLine.info::before{color:var(--accent)}
+
+/* ─── MODAL ─── */
+.modalOverlay{position:fixed;inset:0;background:rgba(0,4,15,.75);backdrop-filter:blur(10px);z-index:50;display:flex;align-items:center;justify-content:center;padding:10px}
+.modalOverlay.hidden{display:none}
+.modalCard{width:min(100%,780px);max-height:92vh;overflow:hidden;border-radius:24px;background:linear-gradient(160deg,rgba(13,23,48,.99),rgba(6,12,28,.99));border:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.modalHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.modalHead h3{font-size:.95rem;font-weight:900}
+.modalClose{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--line);font-size:1.1rem;font-weight:900}
+.modalBody{padding:14px;overflow-y:auto;overflow-x:hidden}
+
+/* ─── SWITCH MODAL ─── */
+.switchGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.switchCard{border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:10px;text-align:left;color:var(--text);display:flex;flex-direction:column;gap:5px;position:relative;cursor:pointer;transition:border-color .12s}
+.switchCard:hover:not(:disabled){border-color:rgba(79,158,255,.4)}
+.switchCard .badge{position:absolute;right:8px;top:8px;font-size:.62rem;font-weight:900;padding:3px 7px;border-radius:999px;background:rgba(255,255,255,.08)}
+.switchCard.active{border-color:rgba(79,158,255,.7)}
+.switchCard.fainted{opacity:.38;cursor:not-allowed}
+
+/* ─── SHOP ─── */
+.shopWrap{display:flex;flex-direction:column;gap:14px}
+.shopTop{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:start}
+.spinStage{aspect-ratio:1;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pokeball{width:64px;height:64px;border-radius:50%;background:linear-gradient(180deg,#ef4444 0 49%,#f8fafc 49%);border:4px solid #0f172a;position:relative;box-shadow:0 12px 24px rgba(0,0,0,.3)}
+.pokeball::before{content:"";position:absolute;left:0;right:0;top:50%;height:7px;margin-top:-3.5px;background:#0f172a}
+.pokeball::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#f8fafc;border:4px solid #0f172a}
+.pokeball.spin{animation:spinBall .65s linear infinite}
+@keyframes spinBall{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.shopInfo p{color:var(--muted);line-height:1.5;font-size:.88rem;margin-bottom:8px}
+.rarityChances{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.rarChip{padding:6px;border-radius:10px;text-align:center;font-size:.65rem;font-weight:800}
+.rarChip.c{background:rgba(148,163,184,.1);color:#94a3b8}
+.rarChip.r{background:rgba(79,158,255,.12);color:#60a5fa}
+.rarChip.e{background:rgba(168,85,247,.15);color:#c084fc}
+.rarChip.l{background:rgba(251,191,36,.12);color:#fcd34d}
+.resultCard{display:none;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:10px;gap:10px;align-items:center;grid-template-columns:80px 1fr}
+.resultCard.show{display:grid}
+.resultCard img{width:80px;height:80px;object-fit:contain;image-rendering:pixelated}
+.resultCard h4{text-transform:capitalize;margin-bottom:4px}
+.resultCard .mini{color:var(--muted);font-size:.82rem;line-height:1.4}
+
+/* ─── FEE MODAL ─── */
+.feeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.feeBtn{padding:12px 6px;border-radius:14px;border:2px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font-weight:800;font-size:.88rem;text-align:center;cursor:pointer;transition:all .12s}
+.feeBtn:hover:not(:disabled){border-color:rgba(79,158,255,.5);background:rgba(79,158,255,.08)}
+.feeBtn.selected{border-color:#4f9eff;background:rgba(79,158,255,.15);color:#bfdbfe;box-shadow:0 0 0 3px rgba(79,158,255,.18)}
+.feeBtn small{display:block;font-size:.62rem;color:var(--muted);font-weight:600;margin-top:1px}
+.feeInfo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:rgba(255,255,255,.03);border-radius:14px;text-align:center}
+.feeInfo .label{font-size:.68rem;color:var(--muted);font-weight:700}
+.feeInfo .value{font-size:.95rem;font-weight:900;margin-top:2px}
+.value.green{color:#4ade80}.value.yellow{color:#fcd34d}
+
+/* ─── MEGA CHOICE ─── */
+.megaChoiceGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px}
+.megaChoiceCard{padding:14px;border-radius:16px;border:2px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .12s;text-align:center}
+.megaChoiceCard:hover{border-color:rgba(168,85,247,.6);background:rgba(168,85,247,.08)}
+.megaChoiceCard img{width:76px;height:76px;object-fit:contain;image-rendering:pixelated}
+.megaChoiceCard .mgName{font-weight:900;font-size:.9rem;letter-spacing:.04em}
+.megaChoiceCard .mgBonus{font-size:.72rem;color:#c4b5fd;font-weight:700}
+
+/* ─── POKÉDEX ─── */
+.dexHeader{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px;background:rgba(255,255,255,.03);border-radius:14px;text-align:center;margin-bottom:10px}
+.dexHeader .label{font-size:.68rem;color:var(--muted);font-weight:700}
+.dexHeader .value{font-size:1rem;font-weight:900;margin-top:2px}
+.dexGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.dexCard{border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.62rem}
+.dexCard img{width:50px;height:50px;object-fit:contain;image-rendering:pixelated}
+.dexCard.caught{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.04)}
+.dexCard.seen{border-color:rgba(79,158,255,.3);background:rgba(79,158,255,.03)}
+.dexNum{color:var(--muted);font-weight:700}
+.dexName{font-weight:800;text-transform:capitalize}
+
+/* ─── RANK MODAL ─── */
+.rankList{display:flex;flex-direction:column;gap:8px}
+.rankItem{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
+.rankItem.current{border-color:rgba(79,158,255,.5);background:rgba(79,158,255,.07)}
+.rankItemIcon{font-size:1.5rem}
+.rankItemInfo{flex:1}
+.rankItemName{font-weight:800}
+.rankItemDesc{font-size:.75rem;color:var(--muted);margin-top:2px}
+.rankItemReq{font-size:.72rem;font-weight:800;color:#fcd34d}
+
+/* ─── TYPE COLORS ─── */
+.type-normal{background:linear-gradient(135deg,#a8a29e,#78716c)}
+.type-fire{background:linear-gradient(135deg,#f97316,#dc2626)}
+.type-water{background:linear-gradient(135deg,#38bdf8,#2563eb)}
+.type-electric{background:linear-gradient(135deg,#facc15,#eab308);color:#111}
+.type-grass{background:linear-gradient(135deg,#4ade80,#16a34a)}
+.type-ice{background:linear-gradient(135deg,#67e8f9,#0ea5e9);color:#083344}
+.type-fighting{background:linear-gradient(135deg,#fb7185,#dc2626)}
+.type-poison{background:linear-gradient(135deg,#c084fc,#9333ea)}
+.type-ground{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.type-flying{background:linear-gradient(135deg,#93c5fd,#3b82f6)}
+.type-psychic{background:linear-gradient(135deg,#f472b6,#db2777)}
+.type-bug{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.type-rock{background:linear-gradient(135deg,#d6d3d1,#78716c);color:#111}
+.type-ghost{background:linear-gradient(135deg,#818cf8,#4338ca)}
+.type-dragon{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.type-dark{background:linear-gradient(135deg,#64748b,#0f172a)}
+.type-steel{background:linear-gradient(135deg,#cbd5e1,#64748b);color:#111}
+.type-fairy{background:linear-gradient(135deg,#f9a8d4,#ec4899)}
+
+.footerHint{color:var(--muted);font-size:.72rem;text-align:center;padding:2px 4px 8px}
+
+@media(max-width:700px){
+  .controlsArea{grid-template-columns:1fr}
+  .sideActions{flex-direction:row;flex-wrap:wrap}
+  .sideActions .btn{flex:1;min-width:80px}
+  .dexGrid{grid-template-columns:repeat(3,1fr)}
+  .feeGrid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:480px){
+  .app{padding:8px;gap:8px}
+  .invGrid{grid-template-columns:1fr}
+  .selectedTray{grid-template-columns:repeat(3,1fr)}
+  .arena{min-height:360px}
+  .spriteWrap{height:140px}
+  .moveGrid{grid-template-columns:1fr}
+  .switchGrid{grid-template-columns:1fr}
+  .shopTop{grid-template-columns:1fr}
+  .megaChoiceGrid{grid-template-columns:1fr}
+  .dexGrid{grid-template-columns:repeat(2,1fr)}
+  .feeGrid{grid-template-columns:repeat(2,1fr)}
+  .rarityChances{grid-template-columns:repeat(2,1fr)}
+  .nameplate,.hpWrap,.statusArea{width:100%}
+}
+
+/* ─── LOGIN SCREEN ─── */
+#loginScreen{position:fixed;inset:0;background:radial-gradient(ellipse at top,#0a1628 0%,#03060f 100%);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;flex-direction:column;gap:20px}
+#loginScreen.hidden{display:none}
+.loginCard{width:min(100%,400px);background:linear-gradient(160deg,rgba(13,23,48,.99),rgba(6,12,28,.99));border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+.loginBrand{text-align:center;display:flex;flex-direction:column;gap:4px}
+.loginBrand h2{font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#60a5fa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.loginBrand p{font-size:.82rem;color:var(--muted)}
+.loginField{display:flex;flex-direction:column;gap:5px}
+.loginField label{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.loginField input{padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font-size:.9rem;font-weight:700;outline:none;transition:border-color .15s}
+.loginField input:focus{border-color:rgba(79,158,255,.55);background:rgba(79,158,255,.05)}
+.loginActions{display:flex;flex-direction:column;gap:8px}
+.loginErr{color:#f87171;font-size:.78rem;font-weight:700;text-align:center;min-height:16px}
+.loginSwitch{text-align:center;font-size:.76rem;color:var(--muted)}
+.loginSwitch button{background:none;color:#60a5fa;font-size:.76rem;font-weight:800;border:none;cursor:pointer;text-decoration:underline;padding:0}
+.loginGuestHint{font-size:.7rem;color:var(--muted);text-align:center}
+
+/* ─── DAILY REWARD ─── */
+.dailyGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:10px 0}
+.dailyDay{border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:7px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.62rem;font-weight:800;transition:all .2s}
+.dailyDay.claimed{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.08);color:#86efac}
+.dailyDay.today{border-color:rgba(79,158,255,.6);background:rgba(79,158,255,.12);box-shadow:0 0 12px rgba(79,158,255,.25)}
+.dailyDay.future{opacity:.38}
+.dailyReward{font-size:.95rem;margin-bottom:1px}
+.dailyStreak{text-align:center;padding:8px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:12px;font-size:.82rem;font-weight:800;color:#fcd34d}
+.dailyNotif{display:none;position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444;border:2px solid var(--bg);animation:notifPing .8s ease-in-out infinite}
+@keyframes notifPing{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.3)}}
+
+/* ─── ACHIEVEMENTS ─── */
+.achieveGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.achieveCard{border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:10px 12px;display:flex;align-items:flex-start;gap:10px;position:relative;transition:all .2s}
+.achieveCard.unlocked{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.05)}
+.achieveCard.locked{opacity:.42;filter:grayscale(.5)}
+.achieveIcon{font-size:1.5rem;flex:0 0 auto;margin-top:2px}
+.achieveInfo .aTitle{font-size:.8rem;font-weight:800}
+.achieveInfo .aDesc{font-size:.66rem;color:var(--muted);margin-top:2px;line-height:1.3}
+.achieveInfo .aReward{font-size:.64rem;font-weight:800;margin-top:4px;color:#fcd34d}
+.achieveInfo .aProg{font-size:.62rem;color:var(--muted);margin-top:2px}
+.achieveUnlockBadge{position:absolute;right:8px;top:8px;font-size:.58rem;font-weight:900;padding:2px 6px;border-radius:999px;background:rgba(34,197,94,.2);color:#86efac;border:1px solid rgba(34,197,94,.3)}
+.achieveBonus{font-size:.62rem;font-weight:900;padding:2px 6px;border-radius:999px;background:rgba(79,158,255,.15);color:#60a5fa;display:inline-block;margin-top:3px}
+
+/* ─── TALENT TREE ─── */
+.talentPtsDisplay{text-align:center;padding:10px;background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.2);border-radius:12px;font-size:.88rem;font-weight:900;color:#c4b5fd;margin-bottom:10px}
+.talentGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.talentCard{border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:12px;display:flex;flex-direction:column;gap:5px;transition:all .15s}
+.talentCard.maxed{border-color:rgba(168,85,247,.45);background:rgba(168,85,247,.07)}
+.talentCard:hover:not(.maxed){border-color:rgba(168,85,247,.3)}
+.talentTitle{font-size:.82rem;font-weight:800}
+.talentDesc{font-size:.68rem;color:var(--muted);line-height:1.3}
+.talentLvlRow{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.talentLvl{font-size:.72rem;font-weight:900;color:#c084fc}
+.talentCost{font-size:.68rem;color:#fcd34d;font-weight:800}
+.talentBar{height:5px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}
+.talentBarFill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#7c3aed,#c084fc);transition:width .35s}
+
+/* ─── SHINY ─── */
+.shinyBadge{font-size:.58rem;font-weight:900;padding:2px 6px;border-radius:999px;background:linear-gradient(135deg,rgba(251,191,36,.35),rgba(168,85,247,.35));color:#fcd34d;border:1px solid rgba(251,191,36,.4);animation:shinyPulse 1.8s ease-in-out infinite}
+@keyframes shinyPulse{0%,100%{box-shadow:none;opacity:1}50%{box-shadow:0 0 10px rgba(251,191,36,.5);opacity:.85}}
+.spriteWrap.shiny img{filter:drop-shadow(0 0 14px rgba(251,191,36,.85)) drop-shadow(0 16px 10px rgba(0,0,0,.4))}
+.spriteWrap.shiny::after{content:"✨";position:absolute;top:8px;right:8px;font-size:1rem;animation:twinkle 1s ease-in-out infinite alternate}
+@keyframes twinkle{from{opacity:1;transform:scale(1)}to{opacity:.4;transform:scale(.8)}}
+
+/* ─── ONLINE / MULTIPLAYER ─── */
+.onlineLobby{display:flex;flex-direction:column;gap:12px}
+.peerIdBox{font-size:1.6rem;font-weight:900;letter-spacing:.15em;text-align:center;color:#60a5fa;padding:14px;border-radius:14px;background:rgba(79,158,255,.07);border:1px solid rgba(79,158,255,.25);cursor:pointer;transition:all .15s;user-select:all}
+.peerIdBox:hover{background:rgba(79,158,255,.12)}
+.onlineStatusBadge{text-align:center;font-size:.82rem;font-weight:800;padding:8px 14px;border-radius:999px}
+.onlineStatusBadge.idle{color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.onlineStatusBadge.waiting{color:#fcd34d;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);animation:pulseBorder .9s ease infinite alternate}
+.onlineStatusBadge.connected{color:#4ade80;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.onlineStatusBadge.error{color:#f87171;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3)}
+@keyframes pulseBorder{from{box-shadow:none}to{box-shadow:0 0 10px rgba(245,158,11,.3)}}
+.onlineChatBox{max-height:120px;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,.03);border-radius:12px;border:1px solid var(--line);font-size:.78rem}
+.chatLine{padding:2px 0}
+.chatLine.mine{color:#60a5fa}.chatLine.opp{color:#f9a8d4}.chatLine.sys{color:var(--muted);font-style:italic}
+
+/* ─── SCREEN SHAKE ─── */
+@keyframes screenShake{0%,100%{transform:translate(0)}15%{transform:translate(-4px,2px)}30%{transform:translate(4px,-2px)}45%{transform:translate(-3px,1px)}60%{transform:translate(3px,-1px)}75%{transform:translate(-2px,0)}}
+.app.screenShake{animation:screenShake .35s ease}
+
+</style>
+</head>
+<body>
+
+<!-- ─── LOGIN SCREEN ─── -->
+<div id="loginScreen">
+  <div class="loginCard">
+    <div class="loginBrand">
+      <div class="eyebrow" style="text-align:center;margin-bottom:2px">Poké-Stakes</div>
+      <h2>Showdown Edition</h2>
+      <p>Faça login ou crie sua conta para salvar o progresso</p>
+    </div>
+    <div class="loginField">
+      <label>Usuário</label>
+      <input id="loginUser" type="text" placeholder="Seu nome de treinador..." maxlength="20" autocomplete="username"/>
+    </div>
+    <div class="loginField">
+      <label>Senha</label>
+      <input id="loginPass" type="password" placeholder="Senha..." maxlength="32" autocomplete="current-password"/>
+    </div>
+    <div class="loginErr" id="loginErr"></div>
+    <div class="loginActions">
+      <button class="btn btnPrimary" id="loginBtn" style="min-height:46px;width:100%">🎮 Entrar</button>
+      <button class="btn" id="registerBtn" style="min-height:46px;width:100%;background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.3)">✨ Criar Conta</button>
+    </div>
+    <div class="loginSwitch"><button id="guestBtn">▶ Jogar como Visitante (sem salvar)</button></div>
+  </div>
+</div>
+
+
+<div class="app">
+
+<!-- ─── TOPBAR ─── -->
+<header class="topbar">
+  <div class="brand">
+    <div class="eyebrow">Poké-Stakes</div>
+    <h1>Showdown Edition</h1>
+  </div>
+  <div class="topRight">
+    <div class="rankBadge" id="rankBadge"><span class="rankIcon" id="rankIcon">🥉</span><span id="rankLabel">Bronze I</span></div>
+    <button class="btn btnDex" style="padding:8px 11px;font-size:.76rem" id="dexBtn">📖 Dex</button>
+    <button class="btn" style="padding:8px 11px;font-size:.76rem" id="rankBtn">🏆 Rank</button>
+    <div class="coinsBox">
+      <div class="coinOrb"></div>
+      <div class="coinsText"><strong id="coinsValue">0</strong><span>moedas</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ─── TEAM SCREEN ─── -->
+<section id="teamScreen" class="screen active">
+
+  <div class="panel hero">
+    <div class="heroTop">
+      <div class="heroCopy">
+        <h2>Monte sua equipe e entre na batalha</h2>
+        <p>Escolha 6 Pokémon, defina sua aposta e teste sua estratégia. Status, buffs, clima e velocidade importam!</p>
+      </div>
+      <div class="heroButtons">
+        <button class="btn btnWarn" id="openShopBtn">🎰 Gacha</button>
+        <button class="btn btnDanger" id="resetBtn">Reset</button>
+        <button class="btn" id="dailyBtn" style="background:linear-gradient(135deg,#d97706,#92400e);position:relative">🎁 Daily<span class="dailyNotif" id="dailyNotif"></span></button>
+        <button class="btn" id="achieveBtn" style="background:linear-gradient(135deg,#0891b2,#0e7490)">🏅 Conquistas</button>
+        <button class="btn" id="talentBtn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">⭐ Talentos</button>
+        <button class="btn btnSuccess" id="onlineBtn" style="font-size:.76rem">🌐 Online</button>
+      </div>
+    </div>
+    <div class="rankProgress" id="rankProgressPanel">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;font-weight:800;">
+        <span id="rankProgressLabel">Progresso</span>
+        <span id="rankProgressPct">0%</span>
+      </div>
+      <div class="rankBar"><div class="rankFill" id="rankFill" style="width:0%"></div></div>
+      <div class="rankLabels"><span id="rankCurrent">Bronze I</span><span id="rankNext">Bronze II</span></div>
+    </div>
+    <div class="footerHint" id="saveHint">Auto-save ativado.</div>
+  </div>
+
+  <div class="panel">
+    <div class="sectionHead">
+      <h2>Equipe</h2>
+      <div class="sectionMeta"><span id="teamCount">0</span>/6</div>
+    </div>
+    <div id="selectedTray" class="selectedTray"></div>
+    <div style="padding:12px;padding-top:0">
+      <button class="btn btnPrimary" id="startBattleBtn" style="width:100%;min-height:50px" disabled>⚔️ Escolher Aposta e Batalhar</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sectionHead">
+      <h2>Inventário</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sectionMeta" id="inventoryCount">0 Pokémon</div>
+        <button class="btn" style="padding:5px 10px;font-size:.74rem;border-radius:10px" id="invToggleBtn">Ocultar</button>
+      </div>
+    </div>
+    <div id="inventoryGrid" class="invGrid"></div>
+  </div>
+
+</section>
+
+<!-- ─── BATTLE SCREEN ─── -->
+<section id="battleScreen" class="screen">
+
+  <div id="stakeBanner" class="stakeBanner" style="display:none">
+    <span>🏆 Pote:</span>
+    <span class="stakePot" id="stakePotDisplay">0</span>
+    <span style="color:var(--muted);font-size:.74rem">o vencedor leva tudo</span>
+  </div>
+
+  <div class="panel battleArea">
+    <div class="arena" id="arenaEl">
+      <div class="enemyArea">
+        <div class="nameplate">
+          <div><span>Inimigo</span><div id="enemyName">---</div></div>
+          <div id="enemyTypeLabel"></div>
+        </div>
+        <div class="hpWrap">
+          <div class="hpBar"><div id="enemyHpFill" class="hpFill"></div></div>
+          <div class="hpText"><span id="enemyHpText">HP 0/0</span><span id="enemyLvText">Lv.50</span></div>
+          <div id="enemyStatusArea" class="statusArea"></div>
+        </div>
+        <div class="spriteWrap" id="enemySpriteWrap"><img id="enemySprite" alt="enemy"/></div>
+      </div>
+      <div class="vsTag">VS</div>
+      <div class="playerArea">
+        <div class="spriteWrap" id="playerSpriteWrap"><img id="playerSprite" alt="player"/></div>
+        <div class="nameplate">
+          <div><span>Jogador</span><div id="playerName">---</div></div>
+          <div id="playerTypeLabel"></div>
+        </div>
+        <div class="hpWrap">
+          <div class="hpBar"><div id="playerHpFill" class="hpFill"></div></div>
+          <div class="hpText"><span id="playerHpText">HP 0/0</span><span id="playerLvText">Lv.50</span></div>
+          <div id="playerStatusArea" class="statusArea"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controlsArea">
+    <div class="panel" style="padding:10px">
+      <div class="sectionHead" style="padding:0 0 10px;border-bottom:1px solid var(--line);background:none">
+        <h2>Ataques</h2>
+        <div class="sectionMeta" id="speedInfo" style="color:#60a5fa"></div>
+      </div>
+      <div id="moveButtons" class="moveGrid" style="margin-top:10px"></div>
+    </div>
+    <div class="sideActions">
+      <button class="btn btnPrimary" id="switchBtn">🔄 Trocar</button>
+      <button class="btn btnMega" id="megaBtn">⚡ Mega</button>
+      <button class="btn btnWarn" id="shopBtn">🎰 Shop</button>
+      <button class="btn" id="backTeamBtn">← Sair</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sectionHead"><h2>Combat Log</h2><div class="sectionMeta">batalha</div></div>
+    <div id="logBox" class="logBox"></div>
+  </div>
+
+</section>
+</div>
+
+<!-- MODAL -->
+<div id="modalOverlay" class="modalOverlay hidden">
+  <div class="modalCard">
+    <div class="modalHead">
+      <h3 id="modalTitle">Modal</h3>
+      <button class="modalClose" id="modalCloseBtn">×</button>
+    </div>
+    <div id="modalBody" class="modalBody"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ══════════════════════════════════════════════════════
+   CONSTANTS & DATA
+══════════════════════════════════════════════════════ */
+const SAVE_KEY  = 'pokeStakesShowdown_v1';
+const DEX_KEY   = 'pokeStakesDex_v2';
+const BL = 50; // battle level
+const GACHA_MAX = 649;
+
+const LEGENDARY_IDS = new Set([
+  144,145,146,150,151,243,244,245,249,250,251,
+  377,378,379,380,381,382,383,384,385,386,
+  480,481,482,483,484,485,486,487,488,489,490,491,492,493,
+  494,638,639,640,641,642,643,644,645,646,647,648,649
+]);
+const EPIC_IDS = new Set([
+  3,6,9,65,68,76,94,97,105,106,107,112,113,121,122,
+  130,131,134,135,136,142,143,149,196,197,212,214,230,
+  248,260,262,289,306,310,330,334,357,373,376,
+  445,448,460,466,467,468,472,475,477,478,479,500,503,508,
+  523,526,530,537,545,549,553,561,567,571,
+  586,591,598,604,612,617,618,621,625,631,635,637,
+]);
+const STARTER_IDS = [1,4,7,25,152,155,158,252,255,258,387,390,393,495,498,501];
+
+const MEGA_DATA = {
+  3:  {forms:[{id:'x',label:'Mega Venusaur',    sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10033.png',types:['grass','poison'],ab:55,db:20}]},
+  6:  {forms:[{id:'x',label:'Mega Charizard X', sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10034.png',types:['fire','dragon'],ab:65,db:10},{id:'y',label:'Mega Charizard Y',sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10035.png',types:['fire','flying'],ab:80,db:5}]},
+  9:  {forms:[{id:'x',label:'Mega Blastoise',   sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10036.png',types:['water'],ab:50,db:25}]},
+  65: {forms:[{id:'x',label:'Mega Alakazam',    sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10053.png',types:['psychic'],ab:70,db:5}]},
+  94: {forms:[{id:'x',label:'Mega Gengar',      sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10063.png',types:['ghost','poison'],ab:65,db:5}]},
+  130:{forms:[{id:'x',label:'Mega Gyarados',    sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10058.png',types:['water','dark'],ab:75,db:20}]},
+  142:{forms:[{id:'x',label:'Mega Aerodactyl',  sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10068.png',types:['rock','flying'],ab:70,db:10}]},
+  149:{forms:[{id:'x',label:'Mega Dragonite',   sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/front_default.png',types:['dragon','flying'],ab:60,db:10}]},
+  150:{forms:[{id:'x',label:'Mega Mewtwo X',    sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10043.png',types:['psychic','fighting'],ab:75,db:15},{id:'y',label:'Mega Mewtwo Y',sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10044.png',types:['psychic'],ab:95,db:5}]},
+  248:{forms:[{id:'x',label:'Mega Tyranitar',   sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10058.png',types:['rock','dark'],ab:70,db:30}]},
+  376:{forms:[{id:'x',label:'Mega Metagross',   sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10077.png',types:['steel','psychic'],ab:65,db:20}]},
+  445:{forms:[{id:'x',label:'Mega Garchomp',    sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10068.png',types:['dragon','ground'],ab:70,db:15}]},
+  448:{forms:[{id:'x',label:'Mega Lucario',     sprite:'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10076.png',types:['fighting','steel'],ab:70,db:5}]},
+};
+
+const RANKS = [
+  {id:'bronze1',  icon:'🥉',label:'Bronze I',     wins:0,   reward:50},
+  {id:'bronze2',  icon:'🥉',label:'Bronze II',    wins:5,   reward:80},
+  {id:'bronze3',  icon:'🥉',label:'Bronze III',   wins:12,  reward:110},
+  {id:'silver1',  icon:'🥈',label:'Prata I',      wins:22,  reward:150},
+  {id:'silver2',  icon:'🥈',label:'Prata II',     wins:35,  reward:200},
+  {id:'silver3',  icon:'🥈',label:'Prata III',    wins:52,  reward:250},
+  {id:'gold1',    icon:'🥇',label:'Ouro I',       wins:75,  reward:320},
+  {id:'gold2',    icon:'🥇',label:'Ouro II',      wins:105, reward:400},
+  {id:'gold3',    icon:'🥇',label:'Ouro III',     wins:145, reward:500},
+  {id:'plat',     icon:'💎',label:'Platina',      wins:200, reward:700},
+  {id:'diamond',  icon:'💠',label:'Diamante',     wins:300, reward:1000},
+  {id:'master',   icon:'👑',label:'Mestre',       wins:500, reward:2000},
+];
+
+const WEATHERS = [
+  {id:'none',     label:'',                icon:'',  tBoost:null,    tPen:null,    residual:[]                },
+  {id:'sun',      label:'Sol Intenso',     icon:'☀️', tBoost:'fire',  tPen:'water', residual:[],    duration:5 },
+  {id:'rain',     label:'Chuva',          icon:'🌧️', tBoost:'water', tPen:'fire',  residual:[],    duration:5 },
+  {id:'sand',     label:'Tempestade',     icon:'🌪️', tBoost:null,    tPen:null,    residual:['rock','ground','steel'], duration:5},
+  {id:'hail',     label:'Granizo',        icon:'❄️', tBoost:null,    tPen:null,    residual:['ice'],duration:5},
+];
+
+const TYPE_CHART = {
+  normal:  {rock:.5,ghost:0,steel:.5},
+  fire:    {grass:2,ice:2,bug:2,steel:2,fire:.5,water:.5,rock:.5,dragon:.5},
+  water:   {fire:2,ground:2,rock:2,water:.5,grass:.5,dragon:.5},
+  electric:{water:2,flying:2,electric:.5,grass:.5,dragon:.5,ground:0},
+  grass:   {water:2,ground:2,rock:2,fire:.5,grass:.5,poison:.5,flying:.5,bug:.5,dragon:.5,steel:.5},
+  ice:     {grass:2,ground:2,flying:2,dragon:2,fire:.5,water:.5,ice:.5,steel:.5},
+  fighting:{normal:2,ice:2,rock:2,dark:2,steel:2,poison:.5,flying:.5,psychic:.5,bug:.5,fairy:.5,ghost:0},
+  poison:  {grass:2,fairy:2,poison:.5,ground:.5,rock:.5,ghost:.5,steel:0},
+  ground:  {fire:2,electric:2,poison:2,rock:2,steel:2,grass:.5,bug:.5,flying:0},
+  flying:  {grass:2,fighting:2,bug:2,electric:.5,rock:.5,steel:.5},
+  psychic: {fighting:2,poison:2,psychic:.5,steel:.5,dark:0},
+  bug:     {grass:2,psychic:2,dark:2,fire:.5,fighting:.5,poison:.5,flying:.5,ghost:.5,steel:.5,fairy:.5},
+  rock:    {fire:2,ice:2,flying:2,bug:2,fighting:.5,ground:.5,steel:.5},
+  ghost:   {psychic:2,ghost:2,dark:.5,normal:0,fairy:.5},
+  dragon:  {dragon:2,steel:.5,fairy:0},
+  dark:    {psychic:2,ghost:2,fighting:.5,dark:.5,fairy:.5},
+  steel:   {ice:2,rock:2,fairy:2,fire:.5,water:.5,electric:.5,steel:.5},
+  fairy:   {fighting:2,dragon:2,dark:2,fire:.5,poison:.5,steel:.5}
+};
+
+/* ══════════════════════════════════════════════════════
+   STATUS CURATED MOVES - override when API move is bad
+══════════════════════════════════════════════════════ */
+const CURATED_MOVES = {
+  fire:     ['flamethrower','fire-blast','will-o-wisp','sunny-day','flame-charge'],
+  water:    ['surf','hydro-pump','water-pulse','rain-dance','aqua-tail'],
+  electric: ['thunderbolt','thunder','thunder-wave','discharge','volt-tackle'],
+  grass:    ['energy-ball','leaf-storm','leech-seed','spore','synthesis'],
+  ice:      ['ice-beam','blizzard','freeze-dry','hail','ice-punch'],
+  fighting: ['close-combat','superpower','bulk-up','drain-punch','mach-punch'],
+  poison:   ['sludge-bomb','sludge-wave','toxic','poison-jab','venoshock'],
+  ground:   ['earthquake','earth-power','sand-tomb','stealth-rock','bulldoze'],
+  flying:   ['air-slash','brave-bird','roost','tailwind','aerial-ace'],
+  psychic:  ['psychic','psyshock','calm-mind','hypnosis','trick-room'],
+  bug:      ['bug-buzz','x-scissor','quiver-dance','spore','string-shot'],
+  rock:     ['stone-edge','rock-slide','stealth-rock','rock-polish','power-gem'],
+  ghost:    ['shadow-ball','shadow-claw','will-o-wisp','hex','destiny-bond'],
+  dragon:   ['dragon-claw','outrage','dragon-dance','draco-meteor','dragon-breath'],
+  dark:     ['crunch','foul-play','snarl','bulk-up','dark-pulse'],
+  steel:    ['iron-head','flash-cannon','iron-defense','gyro-ball','meteor-mash'],
+  fairy:    ['moonblast','dazzling-gleam','sweet-kiss','misty-terrain','draining-kiss'],
+  normal:   ['body-slam','hyper-beam','swords-dance','double-team','recover'],
+};
+
+/* Status move database - local (no API call needed) */
+const STATUS_MOVES_DB = {
+  'will-o-wisp':   {name:'will-o-wisp',  type:'fire',   power:0,acc:85, pp:15,cat:'status',ailment:'burn',     ailmentChance:100,statChanges:[],effect:'Queima o alvo',priority:0},
+  'thunder-wave':  {name:'thunder-wave', type:'electric',power:0,acc:90, pp:20,cat:'status',ailment:'paralysis',ailmentChance:100,statChanges:[],effect:'Paralisa o alvo',priority:0},
+  'toxic':         {name:'toxic',        type:'poison',  power:0,acc:90, pp:10,cat:'status',ailment:'toxic',    ailmentChance:100,statChanges:[],effect:'Envenena gravemente',priority:0},
+  'spore':         {name:'spore',        type:'grass',   power:0,acc:100,pp:15,cat:'status',ailment:'sleep',    ailmentChance:100,statChanges:[],effect:'Dorme o alvo',priority:0},
+  'hypnosis':      {name:'hypnosis',     type:'psychic', power:0,acc:60, pp:20,cat:'status',ailment:'sleep',    ailmentChance:100,statChanges:[],effect:'Dorme o alvo (60% acc)',priority:0},
+  'leech-seed':    {name:'leech-seed',   type:'grass',   power:0,acc:90, pp:10,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[],effect:'Drena HP por turno',priority:0, leechSeed:true},
+  'swords-dance':  {name:'swords-dance', type:'normal',  power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'attack',change:2}],effect:'+2 ATK',priority:0},
+  'bulk-up':       {name:'bulk-up',      type:'fighting',power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'attack',change:1},{stat:'defense',change:1}],effect:'+1 ATK +1 DEF',priority:0},
+  'calm-mind':     {name:'calm-mind',    type:'psychic', power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'special-attack',change:1},{stat:'special-defense',change:1}],effect:'+1 SpA +1 SpD',priority:0},
+  'dragon-dance':  {name:'dragon-dance', type:'dragon',  power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'attack',change:1},{stat:'speed',change:1}],effect:'+1 ATK +1 SPE',priority:0},
+  'quiver-dance':  {name:'quiver-dance', type:'bug',     power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'special-attack',change:1},{stat:'speed',change:1}],effect:'+1 SpA +1 SPE',priority:0},
+  'rock-polish':   {name:'rock-polish',  type:'rock',    power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'speed',change:2}],effect:'+2 SPE',priority:0},
+  'iron-defense':  {name:'iron-defense', type:'steel',   power:0,acc:100,pp:15,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'defense',change:2}],effect:'+2 DEF',priority:0},
+  'recover':       {name:'recover',      type:'normal',  power:0,acc:100,pp:10,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[],effect:'Recupera 50% HP',priority:0,heal:50},
+  'synthesis':     {name:'synthesis',    type:'grass',   power:0,acc:100,pp:5, cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[],effect:'Recupera 50% HP',priority:0,heal:50},
+  'roost':         {name:'roost',        type:'flying',  power:0,acc:100,pp:10,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[],effect:'Recupera 50% HP',priority:0,heal:50},
+  'stealth-rock':  {name:'stealth-rock', type:'rock',    power:0,acc:100,pp:20,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[],effect:'Arma rochas no campo',priority:0},
+  'tailwind':      {name:'tailwind',     type:'flying',  power:0,acc:100,pp:15,cat:'status',ailment:'none',     ailmentChance:0,  statChanges:[{stat:'speed',change:2}],effect:'+2 SPE',priority:0},
+  'mach-punch':    {name:'mach-punch',   type:'fighting',power:40,acc:100,pp:30,cat:'physical',ailment:'none',  ailmentChance:0,  statChanges:[],effect:'Prioridade +1',priority:1},
+  'quick-attack':  {name:'quick-attack', type:'normal',  power:40,acc:100,pp:30,cat:'physical',ailment:'none',  ailmentChance:0,  statChanges:[],effect:'Prioridade +1',priority:1},
+  'aqua-jet':      {name:'aqua-jet',     type:'water',   power:40,acc:100,pp:20,cat:'physical',ailment:'none',  ailmentChance:0,  statChanges:[],effect:'Prioridade +1',priority:1},
+  'sucker-punch':  {name:'sucker-punch', type:'dark',    power:70,acc:100,pp:5, cat:'physical',ailment:'none',  ailmentChance:0,  statChanges:[],effect:'Prioridade +1',priority:1},
+  'flamethrower':  {name:'flamethrower', type:'fire',    power:90,acc:100,pp:15,cat:'special', ailment:'burn',  ailmentChance:10, statChanges:[],effect:'10% queima',priority:0},
+  'fire-blast':    {name:'fire-blast',   type:'fire',    power:110,acc:85,pp:5, cat:'special', ailment:'burn',  ailmentChance:10, statChanges:[],effect:'10% queima',priority:0},
+  'thunderbolt':   {name:'thunderbolt',  type:'electric',power:90,acc:100,pp:15,cat:'special', ailment:'paralysis',ailmentChance:10,statChanges:[],effect:'10% paralisa',priority:0},
+  'thunder':       {name:'thunder',      type:'electric',power:110,acc:70,pp:10,cat:'special', ailment:'paralysis',ailmentChance:30,statChanges:[],effect:'30% paralisa',priority:0},
+  'ice-beam':      {name:'ice-beam',     type:'ice',     power:90,acc:100,pp:10,cat:'special', ailment:'freeze',ailmentChance:10, statChanges:[],effect:'10% congela',priority:0},
+  'blizzard':      {name:'blizzard',     type:'ice',     power:110,acc:70,pp:5, cat:'special', ailment:'freeze',ailmentChance:10, statChanges:[],effect:'10% congela',priority:0},
+  'sludge-bomb':   {name:'sludge-bomb',  type:'poison',  power:90,acc:100,pp:10,cat:'special', ailment:'poison',ailmentChance:30, statChanges:[],effect:'30% envenena',priority:0},
+  'body-slam':     {name:'body-slam',    type:'normal',  power:85,acc:100,pp:15,cat:'physical',ailment:'paralysis',ailmentChance:30,statChanges:[],effect:'30% paralisa',priority:0},
+  'earthquake':    {name:'earthquake',   type:'ground',  power:100,acc:100,pp:10,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Terratremo',priority:0},
+  'close-combat':  {name:'close-combat', type:'fighting',power:120,acc:100,pp:5, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[{stat:'defense',change:-1},{stat:'special-defense',change:-1}],effect:'-1 DEF -1 SpD em si',priority:0},
+  'outrage':       {name:'outrage',      type:'dragon',  power:120,acc:100,pp:10,cat:'physical',ailment:'confusion',ailmentChance:100,statChanges:[],effect:'Confusão ao fim',priority:0},
+  'draco-meteor':  {name:'draco-meteor', type:'dragon',  power:130,acc:90,pp:5,cat:'special',  ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-attack',change:-2}],effect:'-2 SpA em si',priority:0},
+  'shadow-ball':   {name:'shadow-ball',  type:'ghost',   power:80,acc:100,pp:15,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'20% -1 SpD',priority:0},
+  'moonblast':     {name:'moonblast',    type:'fairy',   power:95,acc:100,pp:15,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-attack',change:-1}],effect:'30% -1 SpA inimigo',priority:0},
+  'surf':          {name:'surf',         type:'water',   power:90,acc:100,pp:15,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Surfe',priority:0},
+  'hydro-pump':    {name:'hydro-pump',   type:'water',   power:110,acc:80,pp:5, cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Alto poder',priority:0},
+  'stone-edge':    {name:'stone-edge',   type:'rock',    power:100,acc:80,pp:5, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Alto critial rate',priority:0},
+  'rock-slide':    {name:'rock-slide',   type:'rock',    power:75,acc:90,pp:10, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'30% flinch',priority:0},
+  'foul-play':     {name:'foul-play',    type:'dark',    power:95,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Usa ATK do alvo',priority:0},
+  'hex':           {name:'hex',          type:'ghost',   power:65,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'130 se com status',priority:0, doubleIfStatus:true},
+  'venoshock':     {name:'venoshock',    type:'poison',  power:65,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'130 se envenenado',priority:0, doubleIfPoison:true},
+  'drain-punch':   {name:'drain-punch',  type:'fighting',power:75,acc:100,pp:10,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Recupera 50% dano',priority:0,drain:50},
+  'draining-kiss': {name:'draining-kiss',type:'fairy',   power:50,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Recupera 75% dano',priority:0,drain:75},
+  'leech-life':    {name:'leech-life',   type:'bug',     power:80,acc:100,pp:10,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Recupera 50% dano',priority:0,drain:50},
+  'energy-ball':   {name:'energy-ball',  type:'grass',   power:90,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'10% -1 SpD',priority:0},
+  'leaf-storm':    {name:'leaf-storm',   type:'grass',   power:130,acc:90,pp:5, cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-attack',change:-2}],effect:'-2 SpA em si',priority:0},
+  'psychic':       {name:'psychic',      type:'psychic', power:90,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'10% -1 SpD',priority:0},
+  'crunch':        {name:'crunch',       type:'dark',    power:80,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[{stat:'defense',change:-1}],effect:'20% -1 DEF',priority:0},
+  'bug-buzz':      {name:'bug-buzz',     type:'bug',     power:90,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'10% -1 SpD',priority:0},
+  'air-slash':     {name:'air-slash',    type:'flying',  power:75,acc:95,pp:15, cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'30% flinch',priority:0},
+  'brave-bird':    {name:'brave-bird',   type:'flying',  power:120,acc:100,pp:15,cat:'physical',ailment:'none',ailmentChance:0,  statChanges:[],effect:'1/3 recuo em si',priority:0,recoil:33},
+  'volt-tackle':   {name:'volt-tackle',  type:'electric',power:120,acc:100,pp:15,cat:'physical',ailment:'paralysis',ailmentChance:10,statChanges:[],effect:'1/3 recuo',priority:0,recoil:33},
+  'flame-charge':  {name:'flame-charge', type:'fire',    power:50,acc:100,pp:20,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[{stat:'speed',change:1}],effect:'+1 SPE em si',priority:0},
+  'bulldoze':      {name:'bulldoze',     type:'ground',  power:60,acc:100,pp:20,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[{stat:'speed',change:-1}],effect:'-1 SPE inimigo',priority:0},
+  'discharge':     {name:'discharge',    type:'electric',power:80,acc:100,pp:15,cat:'special', ailment:'paralysis',ailmentChance:30,statChanges:[],effect:'30% paralisa',priority:0},
+  'flash-cannon':  {name:'flash-cannon', type:'steel',   power:80,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'10% -1 SpD',priority:0},
+  'iron-head':     {name:'iron-head',    type:'steel',   power:80,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'30% flinch',priority:0},
+  'aqua-tail':     {name:'aqua-tail',    type:'water',   power:90,acc:90,pp:10, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Poder físico',priority:0},
+  'dazzling-gleam':{name:'dazzling-gleam',type:'fairy',  power:80,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Brilho ofuscante',priority:0},
+  'shadow-claw':   {name:'shadow-claw',  type:'ghost',   power:70,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Alta taxa crítico',priority:0},
+  'psyshock':      {name:'psyshock',     type:'psychic', power:80,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Usa DEF do alvo',priority:0},
+  'meteor-mash':   {name:'meteor-mash',  type:'steel',   power:90,acc:90,pp:10, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[{stat:'attack',change:1}],effect:'20% +1 ATK em si',priority:0},
+  'snarl':         {name:'snarl',        type:'dark',    power:55,acc:95,pp:15, cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-attack',change:-1}],effect:'-1 SpA inimigo',priority:0},
+  'double-team':   {name:'double-team',  type:'normal',  power:0, acc:100,pp:15,cat:'status',  ailment:'none', ailmentChance:0,  statChanges:[{stat:'evasion',change:1}],effect:'+1 EVA',priority:0},
+  'string-shot':   {name:'string-shot',  type:'bug',     power:0, acc:95,pp:40, cat:'status',  ailment:'none', ailmentChance:0,  statChanges:[{stat:'speed',change:-2}],effect:'-2 SPE inimigo',priority:0},
+  'superpower':    {name:'superpower',   type:'fighting',power:120,acc:100,pp:5,cat:'physical', ailment:'none', ailmentChance:0,  statChanges:[{stat:'attack',change:-1},{stat:'defense',change:-1}],effect:'-1 ATK -1 DEF em si',priority:0},
+  'hyper-beam':    {name:'hyper-beam',   type:'normal',  power:150,acc:90,pp:5, cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Recarrega 1 turno',priority:0},
+  'giga-impact':   {name:'giga-impact',  type:'normal',  power:150,acc:90,pp:5, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Recarrega 1 turno',priority:0},
+  'gyro-ball':     {name:'gyro-ball',    type:'steel',   power:0, acc:100,pp:5, cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Mais lento = mais forte',priority:0,gyroBall:true},
+  'power-gem':     {name:'power-gem',    type:'rock',    power:80,acc:100,pp:20,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'Poder especial',priority:0},
+  'dark-pulse':    {name:'dark-pulse',   type:'dark',    power:80,acc:100,pp:15,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[],effect:'20% flinch',priority:0},
+  'poison-jab':    {name:'poison-jab',   type:'poison',  power:80,acc:100,pp:20,cat:'physical',ailment:'poison',ailmentChance:30, statChanges:[],effect:'30% envenena',priority:0},
+  'earth-power':   {name:'earth-power',  type:'ground',  power:90,acc:100,pp:10,cat:'special', ailment:'none', ailmentChance:0,  statChanges:[{stat:'special-defense',change:-1}],effect:'10% -1 SpD',priority:0},
+  'freeze-dry':    {name:'freeze-dry',   type:'ice',     power:70,acc:100,pp:20,cat:'special', ailment:'freeze',ailmentChance:10, statChanges:[],effect:'10% congela; sup. vs água',priority:0},
+  'ice-punch':     {name:'ice-punch',    type:'ice',     power:75,acc:100,pp:15,cat:'physical',ailment:'freeze',ailmentChance:10, statChanges:[],effect:'10% congela',priority:0},
+  'x-scissor':     {name:'x-scissor',   type:'bug',     power:80,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Tesoura',priority:0},
+  'dragon-claw':   {name:'dragon-claw',  type:'dragon',  power:80,acc:100,pp:15,cat:'physical',ailment:'none', ailmentChance:0,  statChanges:[],effect:'Garras dracônicas',priority:0},
+  'dragon-breath': {name:'dragon-breath',type:'dragon',  power:60,acc:100,pp:20,cat:'special', ailment:'paralysis',ailmentChance:30,statChanges:[],effect:'30% paralisa',priority:0},
+  'sand-tomb':     {name:'sand-tomb',    type:'ground',  power:35,acc:85,pp:15, cat:'physical',ailment:'trap', ailmentChance:100,statChanges:[],effect:'Prende por 4-5 turnos',priority:0},
+  'fire-spin':     {name:'fire-spin',    type:'fire',    power:35,acc:85,pp:15, cat:'special', ailment:'trap', ailmentChance:100,statChanges:[],effect:'Prende por 4-5 turnos',priority:0},
+  'sweet-kiss':    {name:'sweet-kiss',   type:'fairy',   power:0, acc:75,pp:10, cat:'status',  ailment:'confusion',ailmentChance:100,statChanges:[],effect:'Confunde o alvo',priority:0},
+  'misty-terrain': {name:'misty-terrain',type:'fairy',   power:0, acc:100,pp:10,cat:'status',  ailment:'none', ailmentChance:0,  statChanges:[],effect:'Protege de status 5 turnos',priority:0},
+};
+
+
+/* ─── ACHIEVEMENTS ─── */
+const ACHIEVEMENTS = [
+  {id:'first_win',    icon:'🏆', title:'Primeira Vitória',    desc:'Vença sua primeira batalha',              check:st=>st.totalWins>=1,    reward:150,  bonus:'coinBonus',bonusVal:.03},
+  {id:'wins_10',      icon:'⚔️',  title:'Guerreiro',           desc:'Vença 10 batalhas',                       check:st=>st.totalWins>=10,   reward:300,  bonus:'coinBonus',bonusVal:.03},
+  {id:'wins_50',      icon:'🔥',  title:'Veterano',            desc:'Vença 50 batalhas',                       check:st=>st.totalWins>=50,   reward:800,  bonus:'coinBonus',bonusVal:.05},
+  {id:'wins_100',     icon:'💎',  title:'Mestre da Arena',     desc:'Vença 100 batalhas',                      check:st=>st.totalWins>=100,  reward:2000, bonus:'coinBonus',bonusVal:.08},
+  {id:'shiny_catch',  icon:'✨',  title:'Sorte de Shiny',      desc:'Obtenha um Pokémon Shiny no Gacha',       check:st=>st.shinyCaught>=1,  reward:500,  bonus:'shinyRate',bonusVal:0},
+  {id:'shiny_3',      icon:'🌟',  title:'Colecionador Shiny',  desc:'Obtenha 3 Pokémon Shiny',                 check:st=>st.shinyCaught>=3,  reward:1500, bonus:'shinyRate',bonusVal:0},
+  {id:'dex_50',       icon:'📖',  title:'Explorador',          desc:'Descubra 50 Pokémon diferentes',          check:st=>(new Set([...st.caughtDex,...st.seenDex])).size>=50, reward:400, bonus:'xpBonus',bonusVal:.05},
+  {id:'dex_200',      icon:'🌐',  title:'Pokédex Lendária',    desc:'Descubra 200 Pokémon diferentes',         check:st=>(new Set([...st.caughtDex,...st.seenDex])).size>=200, reward:1200, bonus:'xpBonus',bonusVal:.1},
+  {id:'streak_7',     icon:'🗓️',  title:'Dedicado',            desc:'Faça login 7 dias seguidos',              check:st=>st.loginStreak>=7,  reward:700,  bonus:'coinBonus',bonusVal:.05},
+  {id:'gacha_50',     icon:'🎰',  title:'Viciado em Gacha',    desc:'Faça 50 pulls no Gacha',                  check:st=>st.totalPulls>=50,  reward:600,  bonus:'gachaDisc',bonusVal:.05},
+  {id:'gacha_200',    icon:'💫',  title:'Gacha Mestre',        desc:'Faça 200 pulls no Gacha',                 check:st=>st.totalPulls>=200, reward:2000, bonus:'gachaDisc',bonusVal:.1},
+  {id:'online_win',   icon:'🌐',  title:'Duelo Online',        desc:'Vença uma batalha online',                check:st=>st.onlineWins>=1,   reward:1000, bonus:'coinBonus',bonusVal:.05},
+];
+
+/* ─── TALENT TREE ─── */
+const TALENTS = [
+  {id:'coinMult',  icon:'🪙', title:'Cofre do Treinador',   desc:'Aumenta moedas ganhas por vitória',     maxLv:5, costPer:1, effect:lv=>`+${lv*10}% moedas`},
+  {id:'hpBoost',   icon:'❤️',  title:'Resistência',          desc:'Todos os Pokémon começam com mais HP',  maxLv:5, costPer:1, effect:lv=>`+${lv*5}% HP`},
+  {id:'critBoost', icon:'⚡',  title:'Instinto Crítico',     desc:'Aumenta a chance de crítico',           maxLv:4, costPer:1, effect:lv=>`+${lv*3}% crit`},
+  {id:'gachaDisc', icon:'🎰',  title:'Negociante',           desc:'Desconto nos pulls do Gacha',           maxLv:3, costPer:2, effect:lv=>`-${lv*10} moedas/pull`},
+  {id:'statusRes', icon:'🛡️',  title:'Imunidade',            desc:'Chance de resistir a status negativos', maxLv:4, costPer:1, effect:lv=>`${lv*10}% resist`},
+  {id:'xpMult',    icon:'⭐',  title:'Exp. Acelerada',       desc:'Bônus de XP em batalhas (futuro)',      maxLv:3, costPer:1, effect:lv=>`+${lv*15}% XP`},
+];
+
+/* ─── DAILY REWARDS TABLE ─── */
+const DAILY_TABLE = [
+  {day:1, reward:100,  icon:'🪙', label:'100 moedas'},
+  {day:2, reward:150,  icon:'🪙', label:'150 moedas'},
+  {day:3, reward:200,  icon:'🪙', label:'200 moedas'},
+  {day:4, reward:300,  icon:'🎁', label:'300 moedas'},
+  {day:5, reward:400,  icon:'💎', label:'400 moedas'},
+  {day:6, reward:500,  icon:'💠', label:'500 moedas'},
+  {day:7, reward:'gacha', icon:'🎰', label:'Ticket Gacha!'},
+];
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+const ST = {
+  coins:0,inventory:[],teamUids:[],ownedIds:[],caughtDex:[],seenDex:[],
+  totalWins:0,totalLosses:0,rankIdx:0,
+  mode:'team',pIdx:0,eIdx:0,
+  playerBattleTeam:[],enemyBattle:null,enemyBattleTeam:[],
+  processing:false,battleEnded:false,
+  switchResolver:null,megaResolver:null,feeResolver:null,
+  modalType:null,shopBusy:false,
+  entryFee:100,currentPot:0,
+  weather:WEATHERS[0],weatherTurns:0,
+  invVisible:true,
+  stealthRockEnemy:false,stealthRockPlayer:false,
+  mistyTerrain:0,
+  // NEW FEATURES
+  lastLoginDate:null,loginStreak:0,dailyClaimed:false,
+  unlockedAchievements:[],
+  talentLevels:{coinMult:0,hpBoost:0,critBoost:0,gachaDisc:0,statusRes:0,xpMult:0},
+  talentPoints:0,
+  shinyCaught:0,totalPulls:0,onlineWins:0,
+  currentUser:null,
+};
+
+/* ── SOUND SYSTEM ── */
+let _audioCtx=null;
+function getAudioCtx(){
+  if(!_audioCtx){try{_audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch{}}
+  return _audioCtx;
+}
+function playSound(type){
+  const ctx=getAudioCtx();if(!ctx) return;
+  const now=ctx.currentTime;
+  const plays=[];
+  function tone(freq,dur,vol=0.18,wave='square'){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=wave;o.connect(g);g.connect(ctx.destination);
+    o.frequency.setValueAtTime(freq,now);
+    g.gain.setValueAtTime(vol,now);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+    o.start(now);o.stop(now+dur+0.01);
+  }
+  function toneAt(freq,start,dur,vol=0.15,wave='square'){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=wave;o.connect(g);g.connect(ctx.destination);
+    o.frequency.setValueAtTime(freq,now+start);
+    g.gain.setValueAtTime(vol,now+start);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+start+dur);
+    o.start(now+start);o.stop(now+start+dur+0.01);
+  }
+  if(type==='click'){tone(900,0.04,0.07,'square')}
+  else if(type==='hit'){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='sawtooth';o.connect(g);g.connect(ctx.destination);
+    o.frequency.setValueAtTime(250,now);
+    o.frequency.exponentialRampToValueAtTime(80,now+0.12);
+    g.gain.setValueAtTime(0.22,now);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+0.14);
+    o.start(now);o.stop(now+0.15);
+  }
+  else if(type==='faint'){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='square';o.connect(g);g.connect(ctx.destination);
+    o.frequency.setValueAtTime(180,now);
+    o.frequency.exponentialRampToValueAtTime(40,now+0.55);
+    g.gain.setValueAtTime(0.2,now);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+0.55);
+    o.start(now);o.stop(now+0.56);
+  }
+  else if(type==='victory'){
+    [[523,.08],[659,.08],[784,.08],[1047,.16],[880,.08],[1047,.24]].forEach(([f,d],i)=>{
+      const t=i*0.12;toneAt(f,t,d,0.15,'square');
+    });
+  }
+  else if(type==='crit'){tone(1200,0.06,0.12,'square');setTimeout(()=>tone(900,0.08,0.1,'square'),70)}
+}
+
+const dexCache = loadJSON(DEX_KEY,{});
+const EL = {};
+
+/* ══════════════════════════════════════════════════════
+   ACCOUNT SYSTEM
+══════════════════════════════════════════════════════ */
+const ACCOUNTS_KEY='pokeStakesAccounts_v1';
+
+function hashPass(s){
+  // Simple FNV-1a hash (not cryptographic, just for localStorage)
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0}
+  return h.toString(36);
+}
+
+function loginAccount(user,pass){
+  const accounts=loadJSON(ACCOUNTS_KEY,{});
+  const acc=accounts[user.toLowerCase()];
+  if(!acc) return{ok:false,msg:'Usuário não encontrado.'};
+  if(acc.passHash!==hashPass(pass)) return{ok:false,msg:'Senha incorreta.'};
+  return{ok:true,data:acc.data||null};
+}
+
+function registerAccount(user,pass){
+  if(!user.trim()||user.length<3) return{ok:false,msg:'Usuário: mínimo 3 caracteres.'};
+  if(!pass||pass.length<4) return{ok:false,msg:'Senha: mínimo 4 caracteres.'};
+  const accounts=loadJSON(ACCOUNTS_KEY,{});
+  const key=user.toLowerCase();
+  if(accounts[key]) return{ok:false,msg:'Usuário já existe.'};
+  accounts[key]={passHash:hashPass(pass),data:null,createdAt:Date.now()};
+  saveJSON(ACCOUNTS_KEY,accounts);
+  return{ok:true,data:null};
+}
+
+function loadAccountData(data){
+  if(!data) return;
+  ST.coins=data.coins||500;
+  ST.inventory=Array.isArray(data.inventory)?data.inventory:[];
+  ST.teamUids=Array.isArray(data.teamUids)?data.teamUids:[];
+  ST.ownedIds=Array.isArray(data.ownedIds)?data.ownedIds:[];
+  ST.caughtDex=Array.isArray(data.caughtDex)?data.caughtDex:[];
+  ST.seenDex=Array.isArray(data.seenDex)?data.seenDex:[];
+  ST.totalWins=data.totalWins||0;ST.totalLosses=data.totalLosses||0;
+  ST.rankIdx=data.rankIdx||0;ST.entryFee=data.entryFee||100;
+  ST.invVisible=data.invVisible!==false;
+  ST.lastLoginDate=data.lastLoginDate||null;
+  ST.loginStreak=data.loginStreak||0;
+  ST.dailyClaimed=data.dailyClaimed||false;
+  ST.unlockedAchievements=Array.isArray(data.unlockedAchievements)?data.unlockedAchievements:[];
+  ST.talentLevels=data.talentLevels||{coinMult:0,hpBoost:0,critBoost:0,gachaDisc:0,statusRes:0,xpMult:0};
+  ST.talentPoints=data.talentPoints||0;
+  ST.shinyCaught=data.shinyCaught||0;
+  ST.totalPulls=data.totalPulls||0;
+  ST.onlineWins=data.onlineWins||0;
+}
+
+function showLoginScreen(){document.getElementById('loginScreen').classList.remove('hidden')}
+function hideLoginScreen(){document.getElementById('loginScreen').classList.add('hidden')}
+
+function bindLoginEvents(){
+  const loginBtn=document.getElementById('loginBtn');
+  const registerBtn=document.getElementById('registerBtn');
+  const guestBtn=document.getElementById('guestBtn');
+  const loginErr=document.getElementById('loginErr');
+
+  async function doLogin(){
+    const user=document.getElementById('loginUser').value.trim();
+    const pass=document.getElementById('loginPass').value;
+    if(!user||!pass){loginErr.textContent='Preencha usuário e senha.';return}
+    const result=loginAccount(user,pass);
+    if(!result.ok){loginErr.textContent=result.msg;return}
+    ST.currentUser=user.toLowerCase();
+    if(result.data) loadAccountData(result.data);
+    hideLoginScreen();
+    await postLoginInit();
+  }
+
+  async function doRegister(){
+    const user=document.getElementById('loginUser').value.trim();
+    const pass=document.getElementById('loginPass').value;
+    const result=registerAccount(user,pass);
+    if(!result.ok){loginErr.textContent=result.msg;return}
+    ST.currentUser=user.toLowerCase();
+    hideLoginScreen();
+    await postLoginInit();
+  }
+
+  loginBtn.addEventListener('click',doLogin);
+  registerBtn.addEventListener('click',doRegister);
+  guestBtn.addEventListener('click',async()=>{ST.currentUser=null;hideLoginScreen();await postLoginInit()});
+
+  document.getElementById('loginUser').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus()});
+  document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+}
+
+/* ══════════════════════════════════════════════════════
+   DAILY REWARD
+══════════════════════════════════════════════════════ */
+function checkDailyLogin(){
+  const today=new Date().toDateString();
+  if(ST.lastLoginDate===today){
+    // Already logged in today, check if not claimed
+    if(!ST.dailyClaimed) document.getElementById('dailyNotif').style.display='block';
+    return;
+  }
+  // New day
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  if(ST.lastLoginDate===yesterday){
+    ST.loginStreak=(ST.loginStreak||0)+1;
+  } else {
+    ST.loginStreak=1;
+  }
+  ST.lastLoginDate=today;
+  ST.dailyClaimed=false;
+  document.getElementById('dailyNotif').style.display='block';
+  saveGame();
+}
+
+function getDayIndex(){
+  return((ST.loginStreak-1)%7);
+}
+
+function claimDailyReward(){
+  if(ST.dailyClaimed) return;
+  const idx=getDayIndex();
+  const r=DAILY_TABLE[idx];
+  if(r.reward==='gacha'){
+    // Give a free gacha pull
+    doFreeGachaPull();
+    log(`🎁 Recompensa Diária Dia ${idx+1}: Pull Grátis no Gacha! 🎰`,'crit');
+  } else {
+    // Apply coin multiplier from achievements
+    const bonus=getAchievementBonus('coinBonus');
+    const total=Math.floor(r.reward*(1+bonus));
+    ST.coins+=total;
+    log(`🎁 Recompensa Diária Dia ${idx+1}: +${total} moedas! (Streak: ${ST.loginStreak} dias)`,'crit');
+  }
+  ST.dailyClaimed=true;
+  document.getElementById('dailyNotif').style.display='none';
+  playSound('victory');
+  saveGame();renderCoins();
+  closeModal();
+}
+
+async function doFreeGachaPull(){
+  const owN=new Set(ST.ownedIds);
+  const pN=[];for(let i=1;i<=GACHA_MAX;i++)if(!owN.has(i))pN.push(i);
+  if(!pN.length){ST.coins+=200;log('Já tem todos! Recebeu 200 moedas.','good');return}
+  try{
+    const id=pN[rng(pN.length)];
+    const mon=await makeInventoryMon(id);
+    ST.inventory.unshift(mon);
+    ST.totalPulls++;
+    checkAchievements();
+    saveGame();renderInventory();renderTray();
+    log(`🎰 Pull Grátis: #${mon.id} ${capitalize(mon.name)}${mon.isShiny?' ✨ SHINY!!':''}!`,'crit');
+  }catch(e){log('Falha no pull grátis.','bad')}
+}
+
+function openDailyModal(){
+  const today=getDayIndex();
+  const streak=ST.loginStreak;
+  const claimed=ST.dailyClaimed;
+  const days=DAILY_TABLE.map((r,i)=>{
+    const isPast=i<today;
+    const isToday=i===today;
+    const isFut=i>today;
+    let cls='dailyDay';
+    if(isPast||claimed&&isToday) cls+=' claimed';
+    else if(isToday) cls+=' today';
+    else cls+=' future';
+    return`<div class="${cls}">
+      <div class="dailyReward">${r.icon}</div>
+      <div>Dia ${i+1}</div>
+      <div style="font-size:.55rem;color:var(--muted)">${r.label}</div>
+    </div>`;
+  }).join('');
+
+  openModal('🎁 Recompensa Diária',`
+    <div class="dailyStreak">🔥 Sequência atual: <b>${streak} dia${streak!==1?'s':''}</b></div>
+    <div class="dailyGrid">${days}</div>
+    <p style="color:var(--muted);font-size:.8rem;margin-bottom:10px;text-align:center">
+      ${claimed?'✅ Já coletado hoje! Volte amanhã.':'Colete sua recompensa do dia!'}
+    </p>
+    ${!claimed?'<button class="btn btnSuccess" id="claimDailyBtn" style="width:100%;min-height:46px">🎁 Coletar Recompensa</button>':''}
+  `,{type:'daily',canClose:true,onMount:()=>{
+    const btn=document.getElementById('claimDailyBtn');
+    if(btn) btn.addEventListener('click',claimDailyReward);
+  }});
+}
+
+/* ══════════════════════════════════════════════════════
+   ACHIEVEMENTS
+══════════════════════════════════════════════════════ */
+function getAchievementBonus(bonusType){
+  let total=0;
+  for(const a of ACHIEVEMENTS){
+    if(a.bonus===bonusType&&ST.unlockedAchievements.includes(a.id)){
+      total+=a.bonusVal||0;
+    }
+  }
+  return total;
+}
+
+function checkAchievements(){
+  let anyNew=false;
+  for(const a of ACHIEVEMENTS){
+    if(!ST.unlockedAchievements.includes(a.id)&&a.check(ST)){
+      ST.unlockedAchievements.push(a.id);
+      ST.coins+=a.reward;
+      log(`🏅 CONQUISTA DESBLOQUEADA: "${a.title}"! +${a.reward} moedas!`,'crit');
+      playSound('victory');
+      anyNew=true;
+    }
+  }
+  if(anyNew){saveGame();renderCoins()}
+}
+
+function getAchievementProgress(a){
+  // Extracts numeric progress for display
+  if(a.id.startsWith('wins_')){const n=parseInt(a.id.split('_')[1]);return`${Math.min(ST.totalWins,n)}/${n}`}
+  if(a.id==='streak_7') return`${Math.min(ST.loginStreak,7)}/7`
+  if(a.id.startsWith('gacha_')){const n=parseInt(a.id.split('_')[1]);return`${Math.min(ST.totalPulls,n)}/${n}`}
+  if(a.id.startsWith('shiny_')){const n=parseInt(a.id.split('_')[1]);return`${Math.min(ST.shinyCaught,n)}/${n}`}
+  if(a.id.startsWith('dex_')){const n=parseInt(a.id.split('_')[1]);const c=(new Set([...ST.caughtDex,...ST.seenDex])).size;return`${Math.min(c,n)}/${n}`}
+  return null;
+}
+
+function openAchievementsModal(){
+  const cards=ACHIEVEMENTS.map(a=>{
+    const unlocked=ST.unlockedAchievements.includes(a.id);
+    const prog=getAchievementProgress(a);
+    const bonusLabels={coinBonus:'+ Bônus Moedas',shinyRate:'+ Shiny',xpBonus:'+ XP Bônus',gachaDisc:'- Custo Gacha'};
+    return`<div class="achieveCard ${unlocked?'unlocked':'locked'}">
+      ${unlocked?'<div class="achieveUnlockBadge">✓</div>':''}
+      <div class="achieveIcon">${a.icon}</div>
+      <div class="achieveInfo">
+        <div class="aTitle">${a.title}</div>
+        <div class="aDesc">${a.desc}</div>
+        ${prog?`<div class="aProg">Progresso: ${prog}</div>`:''}
+        <div class="aReward">+${a.reward} 🪙</div>
+        ${a.bonusVal?`<div class="achieveBonus">${bonusLabels[a.bonus]||a.bonus} +${Math.round(a.bonusVal*100)}%</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const total=ST.unlockedAchievements.length;
+  const coinB=Math.round(getAchievementBonus('coinBonus')*100);
+
+  openModal(`🏅 Conquistas (${total}/${ACHIEVEMENTS.length})`,`
+    <div style="padding:8px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:12px;text-align:center;margin-bottom:12px;font-size:.82rem;font-weight:800;color:#fcd34d">
+      Bônus Ativo: +${coinB}% moedas por vitória
+    </div>
+    <div class="achieveGrid">${cards}</div>
+  `,{type:'achievements',canClose:true});
+}
+
+/* ══════════════════════════════════════════════════════
+   TALENT TREE
+══════════════════════════════════════════════════════ */
+function getTalentLevel(id){return ST.talentLevels[id]||0}
+function getTalentEffect(id){
+  const t=TALENTS.find(t=>t.id===id);if(!t)return 0;
+  const lv=getTalentLevel(id);
+  return lv;
+}
+function grantTalentPoint(){ST.talentPoints++;saveGame();log(`⭐ Ganhou 1 Ponto de Talento! (Total: ${ST.talentPoints})`,'crit')}
+
+function openTalentModal(){
+  const pts=ST.talentPoints;
+  const cards=TALENTS.map(t=>{
+    const lv=getTalentLevel(t.id);
+    const maxed=lv>=t.maxLv;
+    const canAfford=pts>=t.costPer&&!maxed;
+    const pct=Math.round((lv/t.maxLv)*100);
+    return`<div class="talentCard ${maxed?'maxed':''}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.3rem">${t.icon}</span>
+        <div class="talentTitle">${t.title}</div>
+      </div>
+      <div class="talentDesc">${t.desc}</div>
+      <div class="talentBar"><div class="talentBarFill" style="width:${pct}%"></div></div>
+      <div class="talentLvlRow">
+        <div class="talentLvl">${maxed?'MAX ✓':lv===0?'Não desbloqueado':`Nível ${lv}/${t.maxLv}: ${t.effect(lv)}`}</div>
+        <div class="talentCost">${maxed?'':canAfford?`Custo: ${t.costPer}⭐`:`${t.costPer}⭐`}</div>
+      </div>
+      ${!maxed?`<button class="btn btnMega" data-tid="${t.id}" id="tal_${t.id}" style="margin-top:4px;min-height:38px;font-size:.78rem" ${canAfford?'':'disabled'}>
+        ${lv===0?'Desbloquear':'Melhorar'} (${t.costPer}⭐)
+      </button>`:'<div style="color:#c084fc;font-size:.72rem;font-weight:800;text-align:center;margin-top:4px">Maximizado!</div>'}
+    </div>`;
+  }).join('');
+
+  openModal('⭐ Árvore de Talentos',`
+    <div class="talentPtsDisplay">⭐ Pontos disponíveis: <b>${pts}</b> <span style="font-size:.7rem;color:var(--muted)">(ganhe ao subir de Rank)</span></div>
+    <div class="talentGrid">${cards}</div>
+  `,{type:'talent',canClose:true,onMount:()=>{
+    document.querySelectorAll('[data-tid]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const tid=btn.getAttribute('data-tid');
+        const t=TALENTS.find(t=>t.id===tid);if(!t)return;
+        if(ST.talentPoints<t.costPer){log('Pontos insuficientes.','bad');return}
+        if(getTalentLevel(tid)>=t.maxLv){log('Já maximizado!','bad');return}
+        ST.talentLevels[tid]=(ST.talentLevels[tid]||0)+1;
+        ST.talentPoints-=t.costPer;
+        playSound('victory');
+        saveGame();
+        log(`⭐ Talento "${t.title}" -> Nível ${ST.talentLevels[tid]}!`,'crit');
+        closeModal();
+        openTalentModal(); // refresh
+      });
+    });
+  }});
+}
+
+/* ── Talent Effects Helpers ── */
+function getTalentCritBonus(){return(ST.talentLevels.critBoost||0)*0.03}
+function getTalentHPMult(){return 1+(ST.talentLevels.hpBoost||0)*0.05}
+function getTalentCoinMult(){return 1+(ST.talentLevels.coinMult||0)*0.10}
+function getTalentGachaDisc(){return(ST.talentLevels.gachaDisc||0)*10}
+function getTalentStatusRes(){return(ST.talentLevels.statusRes||0)*0.10}
+
+
+
+/* ══════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════ */
+function $(id){return document.getElementById(id)}
+function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function rng(n){return Math.floor(Math.random()*n)}
+function capitalize(s){return String(s||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+function genUID(){return crypto.randomUUID?crypto.randomUUID():'uid_'+Date.now().toString(36)+rng(1e9).toString(36)}
+
+function loadJSON(k,fb){try{const r=localStorage.getItem(k);return r?JSON.parse(r):fb}catch{return fb}}
+function saveJSON(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+function saveGame(){
+  const data={
+    coins:ST.coins,inventory:ST.inventory,teamUids:ST.teamUids,
+    ownedIds:[...new Set(ST.ownedIds)],
+    caughtDex:[...new Set(ST.caughtDex)],seenDex:[...new Set(ST.seenDex)],
+    totalWins:ST.totalWins,totalLosses:ST.totalLosses,rankIdx:ST.rankIdx,
+    entryFee:ST.entryFee,invVisible:ST.invVisible,
+    lastLoginDate:ST.lastLoginDate,loginStreak:ST.loginStreak,dailyClaimed:ST.dailyClaimed,
+    unlockedAchievements:ST.unlockedAchievements,
+    talentLevels:ST.talentLevels,talentPoints:ST.talentPoints,
+    shinyCaught:ST.shinyCaught,totalPulls:ST.totalPulls,onlineWins:ST.onlineWins,
+  };
+  // Save per-user if logged in
+  if(ST.currentUser){
+    const accounts=loadJSON('pokeStakesAccounts_v1',{});
+    if(accounts[ST.currentUser]) accounts[ST.currentUser].data=data;
+    saveJSON('pokeStakesAccounts_v1',accounts);
+  } else {
+    saveJSON(SAVE_KEY,data);
+  }
+  saveJSON(DEX_KEY,dexCache);
+  renderCoins();
+}
+
+function cacheEls(){
+  ['coinsValue','teamScreen','battleScreen','inventoryGrid','selectedTray',
+   'inventoryCount','teamCount','startBattleBtn','openShopBtn','resetBtn',
+   'shopBtn','switchBtn','megaBtn','backTeamBtn','dexBtn','rankBtn','invToggleBtn',
+   'moveButtons','logBox','arenaEl','speedInfo',
+   'enemyName','playerName','enemySprite','playerSprite',
+   'enemyHpFill','playerHpFill','enemyHpText','playerHpText',
+   'enemyLvText','playerLvText','enemyStatusArea','playerStatusArea',
+   'enemyTypeLabel','playerTypeLabel','enemySpriteWrap','playerSpriteWrap',
+   'modalOverlay','modalTitle','modalBody','modalCloseBtn','saveHint',
+   'stakeBanner','stakePotDisplay','rankBadge','rankIcon','rankLabel',
+   'rankFill','rankCurrent','rankNext','rankProgressLabel','rankProgressPct',
+  ].forEach(id=>EL[id]=$(id));
+}
+
+/* ══════════════════════════════════════════════════════
+   RARITY
+══════════════════════════════════════════════════════ */
+function getRarity(id){
+  if(LEGENDARY_IDS.has(id)) return 'legendary';
+  if(EPIC_IDS.has(id))      return 'epic';
+  if(id>250)                return 'rare';
+  return 'common';
+}
+function rarityLabel(r){
+  return {common:'Comum',rare:'Raro',epic:'Épico',legendary:'Lendário'}[r]||'Comum';
+}
+function rarityStatBonus(r){
+  return {common:0,rare:5,epic:12,legendary:22}[r]||0;
+}
+
+/* ══════════════════════════════════════════════════════
+   RANK
+══════════════════════════════════════════════════════ */
+function getCurrentRank(){return RANKS[clamp(ST.rankIdx,0,RANKS.length-1)]}
+function getNextRank(){return RANKS[clamp(ST.rankIdx+1,0,RANKS.length-1)]}
+
+function updateRank(){
+  let newIdx=0;
+  for(let i=RANKS.length-1;i>=0;i--){
+    if(ST.totalWins>=RANKS[i].wins){newIdx=i;break}
+  }
+  if(newIdx>ST.rankIdx){
+    const newRank=RANKS[newIdx];
+    const levelsGained=newIdx-ST.rankIdx;
+    ST.rankIdx=newIdx;
+    ST.coins+=newRank.reward;
+    ST.talentPoints+=levelsGained;
+    log(`🎉 RANK UP! ${newRank.label}! +${newRank.reward} moedas! +${levelsGained}⭐ pontos de talento!`,'crit');
+  } else {
+    ST.rankIdx=newIdx;
+  }
+}
+
+function renderRank(){
+  const r=getCurrentRank();
+  const n=getNextRank();
+  EL.rankIcon.textContent=r.icon;
+  EL.rankLabel.textContent=r.label;
+  EL.rankCurrent.textContent=r.label;
+  EL.rankNext.textContent=n.id===r.id?'MAX':n.label;
+  const winsInRange=ST.totalWins-r.wins;
+  const winsNeeded=(n.wins||r.wins+1)-(r.wins);
+  const pct=n.id===r.id?100:Math.min(100,(winsInRange/winsNeeded)*100);
+  EL.rankFill.style.width=pct+'%';
+  EL.rankProgressPct.textContent=Math.floor(pct)+'%';
+  EL.rankProgressLabel.textContent=`${ST.totalWins} vitórias totais`;
+}
+
+function renderCoins(){EL.coinsValue.textContent=String(ST.coins)}
+
+/* ══════════════════════════════════════════════════════
+   TYPE SYSTEM
+══════════════════════════════════════════════════════ */
+function getTypeClass(t){return`type-${String(t||'normal').toLowerCase()}`}
+function renderTypeChips(types){return(types||[]).map(t=>`<span class="typeChip ${getTypeClass(t)}">${t}</span>`).join('')}
+function getEffectiveness(mt,dt){
+  let m=1;
+  const at=String(mt||'normal').toLowerCase();
+  (dt||[]).forEach(d=>{const v=TYPE_CHART[at]?.[d.toLowerCase()];if(typeof v==='number')m*=v});
+  return m;
+}
+function effectivenessText(m){
+  if(m>=4) return '⚡⚡ MEGA efetivo!!';
+  if(m>=2) return '⚡ Super efetivo!';
+  if(m>0&&m<1) return '💤 Não muito efetivo...';
+  if(m===0) return '🚫 Sem efeito!';
+  return '';
+}
+
+/* ══════════════════════════════════════════════════════
+   STATS CALCULATION
+══════════════════════════════════════════════════════ */
+function calcStats(base,level,rarity){
+  const b=rarityStatBonus(rarity||'common');
+  const hp  = Math.floor(((2*(base.hp +b)+31)*level)/100)+level+10;
+  const atk = Math.floor(((2*(base.atk+b)+31)*level)/100)+5;
+  const def = Math.floor(((2*(base.def+b)+31)*level)/100)+5;
+  const spa = Math.floor(((2*(base.spa+b)+31)*level)/100)+5;
+  const spd = Math.floor(((2*(base.spd+b)+31)*level)/100)+5;
+  const spe = Math.floor(((2*(base.spe+b)+31)*level)/100)+5;
+  return {hp,atk,def,spa,spd,spe};
+}
+
+function stageM(stage){const s=clamp(stage,-6,6);return s>=0?(2+s)/2:2/(2-s)}
+
+function getATK(mon,move){
+  const isSpecial=move?.cat==='special';
+  const base=isSpecial?mon.bst.spa:mon.bst.atk;
+  const stage=isSpecial?(mon.buffs.spa||0):(mon.buffs.atk||0);
+  const megaBonus=mon.isMega?(mon.megaAtkBonus||0):0;
+  let v=(base+megaBonus)*stageM(stage);
+  if(mon.status==='BRN'&&!isSpecial) v*=0.5;
+  return Math.max(1,v);
+}
+function getDEF(mon,move){
+  const isSpecial=move?.cat==='special';
+  const base=isSpecial?mon.bst.spd:mon.bst.def;
+  const stage=isSpecial?(mon.buffs.spd||0):(mon.buffs.def||0);
+  const megaBonus=mon.isMega?(mon.megaDefBonus||0):0;
+  return Math.max(1,(base+megaBonus)*stageM(stage));
+}
+function getSPE(mon){
+  let s=mon.bst.spe*stageM(mon.buffs.spe||0);
+  if(mon.status==='PAR') s*=0.5;
+  return Math.max(1,s);
+}
+function getHP(mon){return clamp(Math.floor(mon.currentHp),0,mon.maxHp)}
+
+/* ══════════════════════════════════════════════════════
+   API
+══════════════════════════════════════════════════════ */
+async function fetchJ(url){
+  const r=await fetch(url);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function shuffleSlice(arr,n){
+  const c=[...arr];
+  for(let i=c.length-1;i>0;i--){const j=rng(i+1);[c[i],c[j]]=[c[j],c[i]]}
+  return c.slice(0,n);
+}
+
+function buildMove(md){
+  if(!md) return null;
+  // Check curated DB first
+  const name=md?.name||'';
+  if(STATUS_MOVES_DB[name]) return STATUS_MOVES_DB[name];
+  const power=typeof md.power==='number'?md.power:0;
+  const acc  =typeof md.accuracy==='number'?md.accuracy:100;
+  const cat  =md.damage_class?.name||'physical';
+  const ailment=md.meta?.ailment?.name||'none';
+  const ailChance=typeof md.meta?.ailment_chance==='number'?md.meta.ailment_chance:(md.effect_chance||0);
+  const statChanges=(md.stat_changes||[]).map(sc=>({stat:sc.stat?.name||'attack',change:sc.change||0}));
+  return {
+    name, type:md.type?.name||'normal', power, acc, pp:md.pp||20,
+    cat, ailment, ailmentChance:ailChance, statChanges,
+    target:md.target?.name||'selected-pokemon',
+    effect:power?`Pwr ${power}`:'Status',
+    priority:md.priority||0,
+  };
+}
+
+async function buildTemplate(id){
+  if(dexCache[id]?.id===id&&dexCache[id]?.moves?.length>=4) return structuredClone(dexCache[id]);
+  const api=await fetchJ(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  const rarity=getRarity(id);
+  const bonus=rarityStatBonus(rarity);
+  const base={
+    hp: api.stats.find(s=>s.stat.name==='hp')?.base_stat||50,
+    atk:api.stats.find(s=>s.stat.name==='attack')?.base_stat||50,
+    def:api.stats.find(s=>s.stat.name==='defense')?.base_stat||50,
+    spa:api.stats.find(s=>s.stat.name==='special-attack')?.base_stat||50,
+    spd:api.stats.find(s=>s.stat.name==='special-defense')?.base_stat||50,
+    spe:api.stats.find(s=>s.stat.name==='speed')?.base_stat||50,
+  };
+  const types=(api.types||[]).map(t=>t.type.name);
+  const bst=calcStats(base,BL,rarity);
+
+  // Build move set: try to get good moves from curated list first
+  const moves=[];
+  const pType=types[0]||'normal';
+  const curatedPool=CURATED_MOVES[pType]||CURATED_MOVES.normal;
+
+  // Try 2 curated moves
+  for(const mn of shuffleSlice(curatedPool,4)){
+    if(moves.length>=2) break;
+    if(STATUS_MOVES_DB[mn]){moves.push(STATUS_MOVES_DB[mn]);continue}
+    try{const d=await fetchJ(`https://pokeapi.co/api/v2/move/${mn}`);const m=buildMove(d);if(m)moves.push(m)}catch{}
+  }
+
+  // Fill remaining from API moves
+  const apiMoves=shuffleSlice(api.moves||[],20).map(m=>m.move?.name).filter(Boolean);
+  for(const mn of apiMoves){
+    if(moves.length>=4) break;
+    if(STATUS_MOVES_DB[mn]){moves.push(STATUS_MOVES_DB[mn]);continue}
+    try{const d=await fetchJ(`https://pokeapi.co/api/v2/move/${mn}`);const m=buildMove(d);if(m&&m.power>0)moves.push(m)}catch{}
+  }
+
+  // Fallback
+  while(moves.length<4){
+    moves.push({name:'tackle',type:'normal',power:40,acc:100,pp:35,cat:'physical',
+      ailment:'none',ailmentChance:0,statChanges:[],effect:'Pwr 40',priority:0});
+  }
+
+  const spr=api.sprites;
+  const template={
+    id:api.id,name:api.name,level:BL,types,base,bst,rarity,
+    frontSprite:spr.front_default||spr.other?.['official-artwork']?.front_default||'',
+    backSprite:spr.back_default||spr.front_default||'',
+    moves:moves.slice(0,4),
+    canMega:!!MEGA_DATA[api.id]
+  };
+  dexCache[id]=template;
+  saveJSON(DEX_KEY,dexCache);
+  return structuredClone(template);
+}
+
+async function makeInventoryMon(id){
+  const t=await buildTemplate(id);
+  if(!ST.caughtDex.includes(id)) ST.caughtDex.push(id);
+  if(!ST.ownedIds.includes(id))  ST.ownedIds.push(id);
+  // Shiny chance: 1/512, improved by achievement bonus
+  const shinyBonus=ST.unlockedAchievements?.some(a=>['shiny_catch','shiny_3'].includes(a))?0.003:0;
+  const isShiny=Math.random()<(1/512+shinyBonus);
+  if(isShiny){ST.shinyCaught=(ST.shinyCaught||0)+1;checkAchievements()}
+  return {uid:genUID(),id:t.id,name:t.name,level:t.level,types:t.types,
+    base:t.base,bst:t.bst,rarity:t.rarity,
+    frontSprite:t.frontSprite,backSprite:t.backSprite,
+    moves:t.moves,canMega:t.canMega,isShiny};
+}
+
+async function hydrateInventory(){
+  const fixes=[];
+  for(const mon of ST.inventory){
+    if(!mon?.id) continue;
+    if(!mon.moves?.length||!mon.base||!mon.bst){
+      fixes.push((async()=>{
+        const t=await buildTemplate(mon.id);
+        Object.assign(mon,{
+          name:mon.name||t.name,level:mon.level||t.level,
+          types:mon.types?.length?mon.types:t.types,
+          base:mon.base||t.base,bst:mon.bst||t.bst,rarity:mon.rarity||t.rarity,
+          frontSprite:mon.frontSprite||t.frontSprite,backSprite:mon.backSprite||t.backSprite,
+          moves:mon.moves?.length?mon.moves:t.moves,canMega:typeof mon.canMega==='boolean'?mon.canMega:t.canMega
+        });
+      })());
+    }
+  }
+  await Promise.all(fixes);
+}
+
+async function bootstrapFreshSave(){
+  ST.coins=500;ST.inventory=[];ST.teamUids=[];ST.ownedIds=[];
+  ST.caughtDex=[];ST.seenDex=[];ST.totalWins=0;ST.totalLosses=0;ST.rankIdx=0;
+  const ids=[...new Set(STARTER_IDS)].slice(0,8);
+  for(const id of ids){try{const m=await makeInventoryMon(id);ST.inventory.push(m)}catch(e){console.warn(e)}}
+  ST.teamUids=ST.inventory.slice(0,6).map(m=>m.uid);
+  saveGame();
+}
+
+/* ══════════════════════════════════════════════════════
+   BATTLE CLONE
+══════════════════════════════════════════════════════ */
+function createClone(t,side){
+  const bst=calcStats(t.base||t.baseStats||{hp:50,atk:50,def:50,spa:50,spd:50,spe:50},t.level||BL,t.rarity);
+  // Apply HP talent bonus for player Pokémon
+  if(side==='player'){const hpMult=getTalentHPMult();bst.hp=Math.floor(bst.hp*hpMult)}
+  return {
+    uid:t.uid||genUID(),id:t.id,name:t.name,originalName:t.name,
+    level:t.level||BL,types:[...(t.types||['normal'])],
+    origTypes:[...(t.types||['normal'])],
+    base:t.base,bst,rarity:t.rarity||'common',
+    currentHp:bst.hp,maxHp:bst.hp,
+    isShiny:t.isShiny||false,
+    frontSprite:t.frontSprite,backSprite:t.backSprite,
+    origFront:t.frontSprite,
+    moves:structuredClone(t.moves||[]),
+    buffs:{atk:0,def:0,spa:0,spd:0,spe:0},
+    status:null,statusTurns:0,toxicCounter:0,
+    leechSeed:false,
+    canMega:!!t.canMega,megaUsed:false,isMega:false,
+    megaAtkBonus:0,megaDefBonus:0,
+    isShiny:!!(t.isShiny),
+    side,
+  };
+}
+
+function activePlayer(){return ST.playerBattleTeam[ST.pIdx]}
+function activeEnemy(){return ST.enemyBattleTeam.length?ST.enemyBattleTeam[ST.eIdx]:ST.enemyBattle}
+
+/* ══════════════════════════════════════════════════════
+   SCREENS / MODAL
+══════════════════════════════════════════════════════ */
+function showScreen(m){
+  ST.mode=m;
+  EL.teamScreen.classList.toggle('active',m==='team');
+  EL.battleScreen.classList.toggle('active',m==='battle');
+}
+
+function openModal(title,html,opts={}){
+  ST.modalType=opts.type||'generic';
+  EL.modalTitle.textContent=title;
+  EL.modalBody.innerHTML=html;
+  EL.modalOverlay.classList.remove('hidden');
+  EL.modalCloseBtn.style.display=opts.canClose===false?'none':'inline-flex';
+  if(opts.onMount) opts.onMount();
+}
+function closeModal(){
+  EL.modalOverlay.classList.add('hidden');
+  EL.modalBody.innerHTML='';
+  ST.modalType=null;
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════════ */
+function renderInventory(){
+  EL.inventoryGrid.innerHTML='';
+  EL.inventoryCount.textContent=`${ST.inventory.length} Pokémon`;
+  if(!ST.invVisible){EL.inventoryGrid.classList.add('hidden');EL.invToggleBtn.textContent='Mostrar';return}
+  EL.inventoryGrid.classList.remove('hidden');EL.invToggleBtn.textContent='Ocultar';
+  ST.inventory.forEach(mon=>{
+    const sel=ST.teamUids.includes(mon.uid);
+    const slotN=ST.teamUids.indexOf(mon.uid)+1;
+    const r=mon.rarity||'common';
+    const card=document.createElement('button');
+    card.className=`pokemonCard ${sel?'selected':''}`;
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <img src="${mon.frontSprite||''}" alt="${mon.name}" style="width:52px;height:52px;object-fit:contain;image-rendering:pixelated;flex:0 0 auto" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0">
+          <div class="pokeTop">
+            <div class="pokeName">#${mon.id} ${capitalize(mon.name)}</div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span class="rarityBadge rarity-${r}">${rarityLabel(r)}</span>
+              <div class="pokeLevel">Lv.${mon.level}</div>
+            </div>
+          </div>
+          <div class="typeRow" style="margin-top:3px">${renderTypeChips(mon.types)}</div>
+          ${mon.canMega?'<div class="megaTag">⚡ MEGA</div>':''}
+      ${mon.isShiny?'<span class="shinyBadge" style="margin-top:2px">✨ SHINY</span>':''}
+        </div>
+      </div>
+      <div class="miniStats">
+        <div>HP<b>${mon.base?.hp||'?'}</b></div>
+        <div>ATK<b>${mon.base?.atk||'?'}</b></div>
+        <div>SPE<b>${mon.base?.spe||'?'}</b></div>
+      </div>
+      ${sel?`<span class="slotLabel">Slot ${slotN}</span>`:''}`;
+    card.addEventListener('click',()=>{playSound('click');toggleSel(mon.uid)});
+    EL.inventoryGrid.appendChild(card);
+  });
+}
+
+function renderTray(){
+  EL.selectedTray.innerHTML='';
+  const team=getTeam();
+  for(let i=0;i<6;i++){
+    const m=team[i];
+    const s=document.createElement('div');
+    s.className=`slot ${m?'filled':''}`;
+    if(m){
+      const r=m.rarity||'common';
+      const sprUrl=m.frontSprite||'';
+      s.innerHTML=`<small>${i+1}</small>
+        ${sprUrl?`<img src="${sprUrl}" alt="${m.name}" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;margin:2px auto 0" onerror="this.style.display='none'">`:''}
+        <div style="font-size:.52rem;text-transform:capitalize;text-align:center;line-height:1.2;margin-top:1px">${capitalize(m.name)}</div>
+        <div style="font-size:.48rem;color:${r==='legendary'?'#fcd34d':r==='epic'?'#c084fc':r==='rare'?'#60a5fa':'var(--muted)'}">${rarityLabel(r)}</div>`;
+    } else {
+      s.innerHTML='<div>Vazio</div>';
+    }
+    EL.selectedTray.appendChild(s);
+  }
+  EL.teamCount.textContent=String(team.length);
+  EL.startBattleBtn.disabled=team.length!==6;
+}
+
+function getTeam(){
+  const m=new Map(ST.inventory.map(m=>[m.uid,m]));
+  return ST.teamUids.map(u=>m.get(u)).filter(Boolean);
+}
+function syncTeam(){
+  const alive=new Set(ST.inventory.map(m=>m.uid));
+  ST.teamUids=ST.teamUids.filter(u=>alive.has(u));
+  if(ST.teamUids.length<6){
+    const fill=ST.inventory.map(m=>m.uid).filter(u=>!ST.teamUids.includes(u));
+    ST.teamUids.push(...fill.slice(0,6-ST.teamUids.length));
+  }
+  ST.teamUids=ST.teamUids.slice(0,6);
+}
+function toggleSel(uid){
+  const i=ST.teamUids.indexOf(uid);
+  if(i>=0){ST.teamUids.splice(i,1)}
+  else{
+    if(ST.teamUids.length>=6){log('Equipe cheia!','system');return}
+    ST.teamUids.push(uid);
+  }
+  saveGame();renderInventory();renderTray();
+}
+
+/* ─── BATTLE RENDER ─── */
+function getHpPct(mon){return clamp((mon.currentHp/mon.maxHp)*100,0,100)}
+function hpClass(p){return p<=25?'low':p<=50?'mid':''}
+
+function renderStatusBadges(mon){
+  if(!mon) return '';
+  const b=[];
+  if(mon.status){
+    const cls=mon.status.toLowerCase();
+    const label=mon.status==='TOX'?'TOX':mon.status;
+    b.push(`<span class="statusBadge ${cls}">${label}</span>`);
+  }
+  if(mon.leechSeed) b.push(`<span class="statusBadge" style="background:rgba(34,197,94,.18);color:#86efac">SEED</span>`);
+  const stages={atk:'ATK',def:'DEF',spa:'SpA',spd:'SpD',spe:'SPE'};
+  for(const[k,lbl] of Object.entries(stages)){
+    const v=mon.buffs?.[k]||0;
+    if(v!==0) b.push(`<span class="buffBadge ${v>0?'plus':'minus'}">${lbl}${v>0?'+':''}${v}</span>`);
+  }
+  return b.join('');
+}
+
+function updateHP(fillEl,textEl,mon){
+  const p=getHpPct(mon);
+  fillEl.style.width=p+'%';
+  fillEl.classList.remove('low','mid');
+  const c=hpClass(p);if(c)fillEl.classList.add(c);
+  textEl.textContent=`HP ${Math.max(0,Math.floor(mon.currentHp))}/${mon.maxHp}`;
+}
+
+function renderBattle(){
+  const p=activePlayer(),e=activeEnemy();
+  if(!p||!e) return;
+
+  EL.playerName.textContent=p.isMega?`MEGA ${capitalize(p.originalName)}`:capitalize(p.originalName);
+  EL.enemyName.textContent=e.isMega?`MEGA ${capitalize(e.originalName)}`:capitalize(e.originalName);
+  EL.playerLvText.textContent=`Lv.${p.level}`;
+  EL.enemyLvText.textContent=`Lv.${e.level}`;
+  EL.playerSprite.src=p.backSprite||'';
+  EL.enemySprite.src=e.frontSprite||'';
+  EL.playerSpriteWrap.classList.toggle('megaGlow',!!p.isMega);
+  EL.enemySpriteWrap.classList.toggle('megaGlow',!!e.isMega);
+  EL.playerSpriteWrap.classList.toggle('shiny',!!p.isShiny&&!p.isMega);
+  EL.enemySpriteWrap.classList.toggle('shiny',!!e.isShiny&&!e.isMega);
+
+  updateHP(EL.playerHpFill,EL.playerHpText,p);
+  updateHP(EL.enemyHpFill,EL.enemyHpText,e);
+  EL.playerStatusArea.innerHTML=renderStatusBadges(p);
+  EL.enemyStatusArea.innerHTML=renderStatusBadges(e);
+  EL.playerTypeLabel.innerHTML=renderTypeChips(p.types);
+  EL.enemyTypeLabel.innerHTML=renderTypeChips(e.types);
+
+  // Enemy team health pips
+  let enemyTeamRow=document.getElementById('enemyTeamRow');
+  if(!enemyTeamRow){
+    enemyTeamRow=document.createElement('div');
+    enemyTeamRow.id='enemyTeamRow';
+    enemyTeamRow.style.cssText='display:flex;gap:4px;width:min(100%,320px);margin-top:4px;flex-wrap:wrap';
+    EL.enemyHpText.parentNode.insertBefore(enemyTeamRow,EL.enemyHpText.nextSibling);
+  }
+  if(ST.enemyBattleTeam.length>1){
+    enemyTeamRow.innerHTML=ST.enemyBattleTeam.map((m,i)=>{
+      const alive=m.currentHp>0;
+      const cur=i===ST.eIdx;
+      return`<span style="font-size:.65rem;padding:2px 5px;border-radius:999px;font-weight:800;
+        background:${cur?'rgba(79,158,255,.35)':alive?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)'};
+        color:${cur?'#93c5fd':alive?'#86efac':'#fca5a5'};
+        border:1px solid ${cur?'rgba(79,158,255,.5)':alive?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'}"
+        title="${capitalize(m.originalName)}">
+        ${alive?'❤️':'💀'}${i+1}</span>`;
+    }).join('');
+  } else {enemyTeamRow.innerHTML=''}
+
+  // Player team pips
+  let playerTeamRow=document.getElementById('playerTeamRow');
+  if(!playerTeamRow){
+    playerTeamRow=document.createElement('div');
+    playerTeamRow.id='playerTeamRow';
+    playerTeamRow.style.cssText='display:flex;gap:4px;width:min(100%,320px);margin-top:4px;flex-wrap:wrap';
+    EL.playerHpText.parentNode.insertBefore(playerTeamRow,EL.playerHpText.nextSibling);
+  }
+  playerTeamRow.innerHTML=ST.playerBattleTeam.map((m,i)=>{
+    const alive=m.currentHp>0;
+    const cur=i===ST.pIdx;
+    return`<span style="font-size:.65rem;padding:2px 5px;border-radius:999px;font-weight:800;
+      background:${cur?'rgba(79,158,255,.35)':alive?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)'};
+      color:${cur?'#93c5fd':alive?'#86efac':'#fca5a5'};
+      border:1px solid ${cur?'rgba(79,158,255,.5)':alive?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'}"
+      title="${capitalize(m.originalName)}">
+      ${alive?'❤️':'💀'}${i+1}</span>`;
+  }).join('');
+
+  // Speed info
+  const ps=getSPE(p),es=getSPE(e);
+  const goesFirst=ps>=es;
+  EL.speedInfo.textContent=`SPE ${ps}${goesFirst?' ▲':' ▼'} vs ${es}`;
+
+  renderWeather();
+  renderMoveButtons();
+}
+
+function renderWeather(){
+  const old=EL.arenaEl.querySelector('.weatherBadge');
+  if(old) old.remove();
+  if(ST.weather&&ST.weather.id!=='none'){
+    const el=document.createElement('div');
+    el.className='weatherBadge';
+    el.textContent=`${ST.weather.icon} ${ST.weather.label} (${ST.weatherTurns}t)`;
+    EL.arenaEl.appendChild(el);
+  }
+}
+
+function getCatIcon(cat){return{physical:'⚔️',special:'✨',status:'🌀'}[cat]||''}
+function getMoveEffect(move){
+  if(move.effect) return move.effect;
+  if(move.heal) return `Cura ${move.heal}% HP`;
+  if(move.drain) return `Drena ${move.drain}% dano`;
+  if(move.recoil) return `${move.recoil}% recuo`;
+  if(move.leechSeed) return 'Drena HP por turno';
+  if(move.power>0&&move.ailment&&move.ailment!=='none') return `${move.ailmentChance}% ${move.ailment}`;
+  return '';
+}
+
+function renderMoveButtons(){
+  EL.moveButtons.innerHTML='';
+  const p=activePlayer();
+  const locked=ST.processing||ST.battleEnded||ST.mode!=='battle';
+  if(!p){
+    for(let i=0;i<4;i++){
+      const b=document.createElement('button');
+      b.className='moveBtn type-normal';b.disabled=true;
+      b.innerHTML='<span class="moveName">---</span>';
+      EL.moveButtons.appendChild(b);
+    }
+    return;
+  }
+  p.moves.slice(0,4).forEach((mv,i)=>{
+    const btn=document.createElement('button');
+    btn.className=`moveBtn ${getTypeClass(mv.type)}`;
+    const eff=getMoveEffect(mv);
+    btn.innerHTML=`
+      <div class="moveMeta">${getCatIcon(mv.cat)} ${capitalize(mv.type)} • ${mv.power?`Pwr ${mv.power}`:'Status'}${mv.priority>0?' • +PRIORIDADE':''}</div>
+      <div class="moveName">${capitalize(mv.name)}</div>
+      ${eff?`<div class="moveEffect">${eff}</div>`:''}`;
+    btn.disabled=locked;
+    btn.addEventListener('click',()=>playerUseMove(i));
+    EL.moveButtons.appendChild(btn);
+  });
+  while(EL.moveButtons.children.length<4){
+    const f=document.createElement('button');f.className='moveBtn type-normal';f.disabled=true;
+    f.innerHTML='<span class="moveName">---</span>';EL.moveButtons.appendChild(f);
+  }
+  EL.switchBtn.disabled=locked;
+  EL.megaBtn.disabled=locked||!p.canMega||p.megaUsed;
+  EL.megaBtn.textContent=p.megaUsed?'⚡ Mega ✓':'⚡ Mega';
+}
+
+/* ══════════════════════════════════════════════════════
+   LOG
+══════════════════════════════════════════════════════ */
+function log(msg,tone=''){
+  const d=document.createElement('div');
+  d.className=`logLine ${tone}`.trim();d.textContent=msg;
+  EL.logBox.appendChild(d);
+  while(EL.logBox.children.length>50)EL.logBox.removeChild(EL.logBox.firstChild);
+  EL.logBox.scrollTop=EL.logBox.scrollHeight;
+}
+
+/* ══════════════════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════════════════ */
+function hitFlash(side){
+  const el=side==='player'?EL.playerSpriteWrap:EL.enemySpriteWrap;
+  el.classList.remove('hitFlash','shake','critShake');void el.offsetWidth;
+  el.classList.add('hitFlash');
+  setTimeout(()=>el.classList.remove('hitFlash'),320);
+}
+function doShake(side){
+  const el=side==='player'?EL.playerSpriteWrap:EL.enemySpriteWrap;
+  el.classList.remove('hitFlash','shake','critShake');void el.offsetWidth;
+  el.classList.add('critShake');
+  setTimeout(()=>el.classList.remove('critShake'),420);
+}
+
+/* ══════════════════════════════════════════════════════
+   BATTLE LOGIC
+══════════════════════════════════════════════════════ */
+
+/* ─ Stat change ─ */
+function applyBuff(mon,stat,amount,side){
+  if(!mon.buffs) mon.buffs={atk:0,def:0,spa:0,spd:0,spe:0};
+  const statMap={attack:'atk',defense:'def','special-attack':'spa','special-defense':'spd',speed:'spe',evasion:'spe'};
+  const k=statMap[stat]||stat;
+  if(!(k in mon.buffs)) return;
+  const old=mon.buffs[k];
+  mon.buffs[k]=clamp(old+amount,-6,6);
+  if(mon.buffs[k]===old){log(`${capitalize(mon.originalName)}'s ${k.toUpperCase()} não pode ir mais ${amount>0?'alto':'baixo'}!`,'system');return}
+  const arrow=amount>0?'↑':'↓';
+  const howMuch=Math.abs(amount)>1?'bastante ':'';
+  const tname=side==='player'?'Seu':'O inimigo:';
+  log(`${tname} ${capitalize(mon.originalName)} ${k.toUpperCase()} ${howMuch}${arrow}!`,amount>0?'good':'bad');
+}
+
+/* ─ Ailment ─ */
+function applyAilment(target,ailment,side){
+  if(!ailment||ailment==='none'||target.currentHp<=0) return false;
+  if(target.status) return false; // already has status
+  if(ST.mistyTerrain>0){log('O Misty Terrain protegeu de status!','system');return false}
+  // Status resistance talent (player only)
+  if(side==='player'&&Math.random()<getTalentStatusRes()){
+    log(`${capitalize(target.originalName)} resistiu ao status! 🛡️`,'good');return false;
+  }
+  const a=ailment.toLowerCase();
+  if(a==='burn'){target.status='BRN';log(`${capitalize(target.originalName)} foi queimado! 🔥`,'bad')}
+  else if(a==='paralysis'){target.status='PAR';log(`${capitalize(target.originalName)} foi paralisado! ⚡`,'bad')}
+  else if(a==='poison'){target.status='PSN';log(`${capitalize(target.originalName)} foi envenenado! 💜`,'bad')}
+  else if(a==='toxic'){target.status='TOX';target.toxicCounter=1;log(`${capitalize(target.originalName)} foi gravemente envenenado! 💜💜`,'bad')}
+  else if(a==='sleep'){
+    target.status='SLP';target.statusTurns=1+rng(3);
+    log(`${capitalize(target.originalName)} adormeceu! 💤`,'bad');
+  }
+  else if(a==='freeze'){
+    target.status='FRZ';log(`${capitalize(target.originalName)} foi congelado! ❄️`,'bad');
+  }
+  else return false;
+  doShake(side);
+  return true;
+}
+
+/* ─ Damage ─ */
+function calcDamage(move,att,def){
+  let power=move.power||0;
+
+  // Special move powers
+  if(move.gyroBall){const diff=getSPE(def)/getSPE(att);power=Math.min(150,Math.ceil(25*diff))||1}
+  if(move.doubleIfStatus&&def.status) power*=2;
+  if(move.doubleIfPoison&&(def.status==='PSN'||def.status==='TOX')) power*=2;
+
+  if(power<=0) return 0;
+
+  const atk=getATK(att,move);
+  const dfn=getDEF(def,move);
+  const typeM=getEffectiveness(move.type,def.types);
+
+  // Weather
+  let weatherM=1;
+  if(ST.weather.tBoost===move.type) weatherM=1.5;
+  if(ST.weather.tPen ===move.type) weatherM=0.5;
+  // Freeze thaws from fire
+  if(def.status==='FRZ'&&move.type==='fire'){def.status=null;log(`${capitalize(def.originalName)} descongelou!`,'good')}
+
+  // Critical (10%)
+  const critChance=0.10+getTalentCritBonus();
+  const crit=Math.random()<critChance;
+  const critM=crit?1.5:1;
+
+  const dmg=Math.max(1,Math.floor(((power*(atk/dfn))/5+2)*typeM*weatherM*critM));
+  return {dmg,typeM,crit};
+}
+
+/* ─ Execute one move ─ */
+async function executeMove(att,def,move,attSide,defSide){
+  if(!move) return;
+  const name=capitalize(move.name);
+  const prefix=att.isMega?'MEGA ':att.status==='BRN'?'🔥':'';
+  log(`${prefix}${capitalize(att.originalName)} usou ${name}!`,'system');
+  await wait(180);
+
+  // Accuracy check
+  const acc=typeof move.acc==='number'?move.acc:100;
+  if(move.power>0&&Math.random()*100>acc){
+    log(`O ataque errou!`,'bad');doShake(attSide);return;
+  }
+
+  // Heal moves
+  if(move.heal){
+    const h=Math.floor(att.maxHp*(move.heal/100));
+    att.currentHp=Math.min(att.maxHp,att.currentHp+h);
+    log(`${capitalize(att.originalName)} recuperou ${h} HP! 💚`,'good');
+    renderBattle();return;
+  }
+
+  // Status-only moves
+  if(move.power<=0&&!move.gyroBall){
+    // Stat changes (on self or target)
+    const onSelf=['user','ally-side','user-or-ally','user-and-allies'].includes(move.target);
+    const statTarget=onSelf?att:def;
+    const statTargetSide=onSelf?attSide:defSide;
+    for(const sc of(move.statChanges||[])){
+      applyBuff(statTarget,sc.stat,sc.change,statTargetSide);
+    }
+    // Ailment
+    if(move.ailment&&move.ailment!=='none'&&move.ailmentChance===100){
+      applyAilment(def,move.ailment,defSide);
+    }
+    if(move.leechSeed&&!def.leechSeed){
+      def.leechSeed=true;
+      log(`${capitalize(def.originalName)} foi atingido por Leech Seed! 🌱`,'bad');
+    }
+    if(move.mistyTerrain){ST.mistyTerrain=5;log('Misty Terrain foi criado! (5 turnos)','info')}
+    renderBattle();return;
+  }
+
+  // Damage
+  const res=calcDamage(move,att,def);
+  const {dmg,typeM,crit}=res;
+
+  def.currentHp=Math.max(0,def.currentHp-dmg);
+  hitFlash(defSide);
+  playSound(crit?'crit':'hit');
+  if(crit) doShake(defSide);
+  // Dynamic narration
+  const pct=def.currentHp/def.maxHp;
+  const dmgPct=dmg/def.maxHp;
+  let flavor='';
+  if(crit){const critLines=['💥 Golpe DEVASTADOR!','✨ Acerto CRÍTICO PERFEITO!','⚡ CRITICO! Que golpe incrível!'];flavor=' '+critLines[rng(critLines.length)]}
+  else if(dmgPct>0.4){const hardLines=['💪 Golpe poderoso!','🔥 Dano massivo!','😱 Que pancada!'];flavor=' '+hardLines[rng(hardLines.length)]}
+  else if(pct<=0.15&&pct>0){flavor=' 😰 Está quase no limite!'}
+  log(`Causou ${dmg} de dano!${flavor}`,'good');
+  // Screen shake on heavy hits
+  if(dmgPct>0.3){const app=document.querySelector('.app');app.classList.remove('screenShake');void app.offsetWidth;app.classList.add('screenShake');setTimeout(()=>app.classList.remove('screenShake'),380)}
+
+  const effText=effectivenessText(typeM);
+  if(effText) log(effText,typeM>=2?'good':'bad');
+
+  // Drain
+  if(move.drain){
+    const heal=Math.max(1,Math.floor(dmg*(move.drain/100)));
+    att.currentHp=Math.min(att.maxHp,att.currentHp+heal);
+    log(`${capitalize(att.originalName)} absorveu ${heal} HP! 💚`,'good');
+  }
+
+  // Recoil
+  if(move.recoil){
+    const rec=Math.max(1,Math.floor(att.maxHp*(move.recoil/100)));
+    att.currentHp=Math.max(0,att.currentHp-rec);
+    log(`${capitalize(att.originalName)} sofreu ${rec} de recuo!`,'bad');
+    hitFlash(attSide);
+  }
+
+  // Stat changes from damaging moves
+  for(const sc of(move.statChanges||[])){
+    const onSelf=['user','ally-side','user-or-ally','user-and-allies'].includes(move.target);
+    const tgt=onSelf?att:def;
+    const tSide=onSelf?attSide:defSide;
+    if(Math.random()<0.3||sc.change<0) applyBuff(tgt,sc.stat,sc.change,tSide); // debuffs more likely
+  }
+
+  // Ailment chance
+  if(move.ailment&&move.ailment!=='none'&&move.ailmentChance>0){
+    if(Math.random()*100<move.ailmentChance){
+      applyAilment(def,move.ailment,defSide);
+    }
+  }
+
+  renderBattle();
+  await wait(200);
+}
+
+/* ─ Start of turn: status checks ─ */
+function startOfTurnCheck(mon){
+  if(!mon||mon.currentHp<=0) return{canAct:false,reason:'fainted'};
+  if(mon.status==='SLP'){
+    mon.statusTurns=Math.max(0,(mon.statusTurns||0)-1);
+    if(mon.statusTurns>0) return{canAct:false,reason:'sleep'};
+    mon.status=null;mon.statusTurns=0;
+    return{canAct:true,msg:'acordou'};
+  }
+  if(mon.status==='FRZ'){
+    if(Math.random()<0.2){mon.status=null;return{canAct:true,msg:'descongelou'}}
+    return{canAct:false,reason:'freeze'};
+  }
+  if(mon.status==='PAR'&&Math.random()<0.25) return{canAct:false,reason:'par'};
+  return{canAct:true};
+}
+
+/* ─ End of turn: residual damage ─ */
+function applyResidual(mon,side){
+  if(!mon||mon.currentHp<=0) return;
+  // Burn: 1/8 max HP per turn (ATK penalty already in getATK)
+  if(mon.status==='BRN'){
+    const d=Math.max(1,Math.floor(mon.maxHp/8));
+    mon.currentHp=Math.max(0,mon.currentHp-d);
+    log(`${capitalize(mon.originalName)} sofreu ${d} de queimadura! 🔥`,'bad');
+    hitFlash(side);
+  }
+  // Poison: 1/8 max HP per turn (fixed)
+  if(mon.status==='PSN'){
+    const d=Math.max(1,Math.floor(mon.maxHp/8));
+    mon.currentHp=Math.max(0,mon.currentHp-d);
+    log(`${capitalize(mon.originalName)} sofreu ${d} de veneno! 💜`,'bad');
+    hitFlash(side);
+  }
+  // Toxic: 1/16 × counter, increases each turn
+  if(mon.status==='TOX'){
+    if(!mon.toxicCounter) mon.toxicCounter=1;
+    const d=Math.max(1,Math.floor((mon.maxHp/16)*mon.toxicCounter));
+    mon.currentHp=Math.max(0,mon.currentHp-d);
+    mon.toxicCounter=Math.min(mon.toxicCounter+1,15);
+    log(`${capitalize(mon.originalName)} sofreu ${d} de veneno grave! (×${mon.toxicCounter-1}) 💜💜`,'bad');
+    hitFlash(side);
+  }
+  // Leech seed
+  if(mon.leechSeed&&mon.currentHp>0){
+    const d=Math.max(1,Math.floor(mon.maxHp/8));
+    mon.currentHp=Math.max(0,mon.currentHp-d);
+    const other=side==='player'?activeEnemy():activePlayer();
+    if(other&&other.currentHp>0){
+      other.currentHp=Math.min(other.maxHp,other.currentHp+d);
+      log(`Leech Seed drenou ${d} HP de ${capitalize(mon.originalName)}!`,'info');
+    }
+  }
+  // Weather residual (skip immune types)
+  if(ST.weather.residual.length&&!ST.weather.residual.some(t=>mon.types.includes(t))){
+    const d=Math.max(1,Math.floor(mon.maxHp/16));
+    mon.currentHp=Math.max(0,mon.currentHp-d);
+    log(`${capitalize(mon.originalName)} sofreu ${d} de ${ST.weather.label}!`,'bad');
+  }
+  // Misty terrain countdown
+  if(ST.mistyTerrain>0){ST.mistyTerrain--;if(ST.mistyTerrain===0)log('O Misty Terrain dissipou.','system')}
+}
+
+/* ─ Weather tick ─ */
+function tickWeather(){
+  if(ST.weather.id==='none') return;
+  ST.weatherTurns--;
+  if(ST.weatherTurns<=0){
+    log(`O ${ST.weather.label} passou.`,'system');
+    ST.weather=WEATHERS[0];ST.weatherTurns=0;
+  }
+}
+
+/* ─ Battle end checks ─ */
+function checkEnd(){
+  // Legacy thin wrapper – real logic in checkAndHandleFaints
+  const e=activeEnemy();
+  if(e&&e.currentHp<=0){
+    const nextI=ST.enemyBattleTeam.findIndex((m,i)=>i!==ST.eIdx&&m.currentHp>0);
+    if(nextI<0){battleWon();return true}
+    return false;
+  }
+  const alive=ST.playerBattleTeam.some(m=>m.currentHp>0);
+  if(!alive){battleLost();return true}
+  return false;
+}
+
+async function checkAndHandleFaints(){
+  if(ST.battleEnded) return 'end';
+
+  // Enemy fainted?
+  const e=activeEnemy();
+  if(e&&e.currentHp<=0){
+    log(`${capitalize(e.originalName)} desmaiou! 💀`,'crit');
+    playSound('faint');
+    await wait(400);
+    const nextI=ST.enemyBattleTeam.findIndex((m,i)=>i!==ST.eIdx&&m.currentHp>0);
+    if(nextI<0){battleWon();return 'win'}
+    ST.eIdx=nextI;
+    const ne=activeEnemy();
+    ne.buffs={atk:0,def:0,spa:0,spd:0,spe:0};
+    log(`O inimigo enviou ${capitalize(ne.originalName)}! [${'❤️'.repeat(ST.enemyBattleTeam.filter(m=>m.currentHp>0).length)}]`,'system');
+    renderBattle();
+    await wait(350);
+    return 'enemy-switched';
+  }
+
+  // Player fainted?
+  const p=activePlayer();
+  if(p&&p.currentHp<=0){
+    log(`${capitalize(p.originalName)} desmaiou! 💀`,'crit');
+    playSound('faint');
+    await wait(300);
+    const hasAlive=ST.playerBattleTeam.some((m,i)=>i!==ST.pIdx&&m.currentHp>0);
+    if(!hasAlive){battleLost();return 'loss'}
+    await forceSwitch();
+    return 'player-switched';
+  }
+
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════
+   AI LOGIC
+══════════════════════════════════════════════════════ */
+function scoreMove(move,att,def){
+  let score=0;
+  if(!move) return -99;
+
+  // Damage potential
+  if(move.power>0){
+    const typeM=getEffectiveness(move.type,def.types);
+    if(typeM===0) return -999; // Never use immune moves
+    const {dmg}=calcDamage(move,att,def);
+    score+=dmg*typeM*0.5;
+    // Prefer finishing blows strongly
+    if(dmg>=def.currentHp) score+=300;
+    // Super effective priority
+    if(typeM>=4) score+=80;
+    else if(typeM>=2) score+=55;
+    // Not very effective penalty
+    if(typeM<1) score-=25;
+  }
+
+  // Status moves – only use if opponent has NO status
+  if(move.ailment&&move.ailment!=='none'&&move.ailmentChance>=100&&!def.status){
+    if(ST.mistyTerrain>0) score-=999; // useless in misty terrain
+    else{
+      score+=90;
+      if(move.ailment==='sleep') score+=50;      // Sleep best
+      if(move.ailment==='toxic') score+=35;      // Toxic very good
+      if(move.ailment==='paralysis') score+=30;  // Paralysis good (speed cut)
+      if(move.ailment==='burn') score+=20;
+    }
+  }
+  // Penalize redundant status moves if enemy already has one
+  if(move.power===0&&def.status&&move.ailment&&move.ailment!=='none'&&!move.statChanges?.length&&!move.heal) score-=100;
+
+  // Buff moves (AI uses if HP>50% and not already maxed)
+  if(move.statChanges?.length){
+    const onSelf=['user','ally-side','user-or-ally','user-and-allies'].includes(move.target);
+    if(onSelf&&att.currentHp/att.maxHp>0.5){
+      for(const sc of move.statChanges){
+        const buffKey={attack:'atk',defense:'def','special-attack':'spa','special-defense':'spd',speed:'spe'}[sc.stat]||sc.stat;
+        const curBuff=att.buffs?.[buffKey]||0;
+        if(sc.change>0&&curBuff<4) score+=40*sc.change;
+        else if(sc.change<0) score-=5; // self-debuff is acceptable
+      }
+    }
+  }
+
+  // Heal when low HP
+  if(move.heal&&att.currentHp/att.maxHp<0.4) score+=160;
+  if(move.heal&&att.currentHp/att.maxHp>0.75) score-=80; // don't heal at full
+
+  // Priority moves when enemy at low HP
+  if(move.priority>0&&def.currentHp/def.maxHp<0.35) score+=70;
+
+  // STAB bonus (same type attack bonus)
+  if(att.types?.includes(move.type)) score+=15;
+
+  // Accuracy penalty
+  score*=((move.acc||100)/100);
+
+  return score;
+}
+
+function aiChooseMove(enemy,player){
+  const ranked=enemy.moves.map((mv,i)=>({mv,i,sc:scoreMove(mv,enemy,player)}));
+  ranked.sort((a,b)=>b.sc-a.sc);
+  // 80% best, 20% random from top 2
+  const pick=Math.random()<0.8?ranked[0]:ranked[Math.min(1,ranked.length-1)];
+  return{move:pick.mv,idx:pick.i};
+}
+
+function aiShouldSwitch(){
+  const e=activeEnemy();if(!e||ST.enemyBattleTeam.length<2) return false;
+  if(e.currentHp/e.maxHp<0.20){
+    const nextI=ST.enemyBattleTeam.findIndex((m,i)=>i!==ST.eIdx&&m.currentHp>0&&m.currentHp/m.maxHp>0.45);
+    return nextI>=0?nextI:false;
+  }
+  return false;
+}
+
+async function aiDoSwitch(nextI){
+  const old=activeEnemy();
+  log(`O inimigo retirou ${capitalize(old.originalName)}!`,'system');
+  await wait(250);
+  ST.eIdx=nextI;
+  const ne=activeEnemy();
+  ne.buffs={atk:0,def:0,spa:0,spd:0,spe:0};
+  log(`O inimigo enviou ${capitalize(ne.originalName)}! 💪`,'system');
+  renderBattle();
+  await wait(400);
+}
+
+async function enemyTurn(){
+  const e=activeEnemy(),p=activePlayer();
+  if(!e||!p||ST.battleEnded) return;
+
+  // AI switch check (if HP < 20% and has a healthy reserve)
+  const switchIdx=aiShouldSwitch();
+  if(switchIdx!==false){await aiDoSwitch(switchIdx);return}
+
+  const chk=startOfTurnCheck(e);
+  if(!chk.canAct){
+    if(chk.reason==='sleep') log(`${capitalize(e.originalName)} está dormindo... 💤`,'system');
+    if(chk.reason==='freeze') log(`${capitalize(e.originalName)} está congelado! ❄️`,'system');
+    if(chk.reason==='par') log(`${capitalize(e.originalName)} está paralisado e não se moveu! ⚡`,'system');
+    return;
+  }
+  if(chk.msg==='acordou') log(`${capitalize(e.originalName)} acordou!`,'info');
+  if(chk.msg==='descongelou') log(`${capitalize(e.originalName)} descongelou!`,'info');
+
+  // AI mega evolution: use at ~50% HP if eligible
+  if(e.canMega&&!e.megaUsed&&e.currentHp/e.maxHp<0.55){
+    const mData=MEGA_DATA[e.id];
+    if(mData){
+      const form=mData.forms[0];
+      e.megaUsed=true;e.isMega=true;
+      e.megaAtkBonus=form.ab||50;e.megaDefBonus=form.db||0;
+      e.types=[...form.types];
+      e.frontSprite=form.sprite;
+      log(`${form.label} mega evoluiu! (IA)💥`,'crit');
+      renderBattle();await wait(300);
+    }
+  }
+
+  await wait(380);
+  // Advanced AI: pick best move
+  const {move}=aiChooseMove(e,p);
+  await executeMove(e,p,move,'enemy','player');
+}
+
+async function endOfRound(){
+  if(ST.battleEnded) return;
+  applyResidual(activePlayer(),'player');
+  applyResidual(activeEnemy(),'enemy');
+  tickWeather();
+  renderBattle();
+  // Note: faint checks after endOfRound are done by the caller via checkAndHandleFaints()
+}
+
+/* ══════════════════════════════════════════════════════
+   PLAYER ACTIONS
+══════════════════════════════════════════════════════ */
+async function playerUseMove(index){
+  if(ST.processing||ST.mode!=='battle'||ST.battleEnded) return;
+  // Online mode: route to MP handler
+  if(MP.active){await playerUseMoveMP(index);return}
+  const p=activePlayer();
+  // FAINT LOOP FIX: if active pokemon is fainted, force switch immediately
+  if(!p||p.currentHp<=0){
+    const r=await checkAndHandleFaints();
+    if(r==='win'||r==='loss') return;
+    ST.processing=false;renderBattle();return;
+  }
+  const e=activeEnemy();
+  if(!e) return;
+
+  ST.processing=true;renderMoveButtons();
+
+  // Status checks
+  const chk=startOfTurnCheck(p);
+  if(!chk.canAct){
+    if(chk.reason==='sleep') log(`${capitalize(p.originalName)} está dormindo e não pode atacar! 💤`,'bad');
+    if(chk.reason==='freeze') log(`${capitalize(p.originalName)} está congelado! ❄️`,'bad');
+    if(chk.reason==='par') log(`${capitalize(p.originalName)} está paralisado e não se moveu! ⚡`,'bad');
+    await enemyTurn();
+    const r1=await checkAndHandleFaints();if(r1==='win'||r1==='loss') return;
+    await endOfRound();
+    const r2=await checkAndHandleFaints();if(r2==='win'||r2==='loss') return;
+    ST.processing=false;renderBattle();return;
+  }
+  if(chk.msg) log(`${capitalize(p.originalName)} ${chk.msg}!`,'info');
+
+  const move=p.moves[index];
+  if(!move){ST.processing=false;renderBattle();return}
+
+  // Speed determines first or second
+  const ps=getSPE(p),es=getSPE(e);
+  const playerFirst=(move.priority||0)>0||(ps>=es);
+
+  if(playerFirst){
+    await executeMove(p,e,move,'player','enemy');
+    const r1=await checkAndHandleFaints();
+    if(r1==='win'||r1==='loss') return;
+    // Enemy attacks only if we didn't KO it (enemy-switched means new enemy, no free turn)
+    if(r1!=='enemy-switched'){
+      await enemyTurn();
+      const r2=await checkAndHandleFaints();if(r2==='win'||r2==='loss') return;
+    }
+  } else {
+    await enemyTurn();
+    const r1=await checkAndHandleFaints();
+    if(r1==='win'||r1==='loss') return;
+    // Player still attacks even if forced to switch (the move is already "chosen")
+    if(r1!=='player-switched'){
+      const curP=activePlayer();if(!curP||curP.currentHp<=0){ST.processing=false;renderBattle();return}
+      await executeMove(curP,e,move,'player','enemy');
+      const r2=await checkAndHandleFaints();if(r2==='win'||r2==='loss') return;
+    }
+  }
+
+  await endOfRound();
+  const r3=await checkAndHandleFaints();if(r3==='win'||r3==='loss') return;
+
+  ST.processing=false;renderBattle();
+}
+
+async function playerManualSwitch(){
+  if(ST.processing||ST.mode!=='battle'||ST.battleEnded) return;
+  ST.processing=true;renderMoveButtons();
+  const idx=await openSwitchModal(false);
+  if(typeof idx!=='number'){ST.processing=false;renderBattle();return}
+  ST.pIdx=idx;
+  const p=activePlayer();
+  p.buffs={atk:0,def:0,spa:0,spd:0,spe:0};
+  log(`Vai, ${capitalize(p.originalName)}!`,'good');
+  playSound('click');
+  saveGame();renderBattle();
+  await enemyTurn();
+  const r1=await checkAndHandleFaints();if(r1==='win'||r1==='loss') return;
+  await endOfRound();
+  const r2=await checkAndHandleFaints();if(r2==='win'||r2==='loss') return;
+  ST.processing=false;renderBattle();
+}
+
+async function forceSwitch(){
+  if(ST.battleEnded) return;
+  const alive=ST.playerBattleTeam.map((m,i)=>({m,i})).filter(x=>x.m.currentHp>0&&x.i!==ST.pIdx);
+  if(!alive.length){battleLost();return}
+  // Keep modal open until a valid pick is made — forced=true blocks closing
+  const idx=await openSwitchModal(true);
+  if(typeof idx!=='number'){
+    // Safety: if somehow unresolved, pick first alive
+    const first=ST.playerBattleTeam.findIndex((m,i)=>i!==ST.pIdx&&m.currentHp>0);
+    if(first<0){battleLost();return}
+    ST.pIdx=first;
+  } else {
+    ST.pIdx=idx;
+  }
+  const p=activePlayer();
+  p.buffs={atk:0,def:0,spa:0,spd:0,spe:0};
+  log(`Vai, ${capitalize(p.originalName)}!`,'good');
+  saveGame();renderBattle();
+}
+
+/* ── MEGA ── */
+async function useMega(){
+  if(ST.mode!=='battle'||ST.processing||ST.battleEnded) return;
+  const p=activePlayer();
+  if(!p||!p.canMega){log('Este Pokémon não pode mega evoluir.','system');return}
+  if(p.megaUsed){log('Mega evolução já usada!','system');return}
+  ST.processing=true;renderMoveButtons();
+  const form=await openMegaChoiceModal(p);
+  if(!form){ST.processing=false;renderBattle();return}
+  p.megaUsed=true;p.isMega=true;
+  p.megaAtkBonus=form.ab||50;p.megaDefBonus=form.db||0;
+  p.types=[...form.types];
+  if(form.sprite){p.backSprite=form.sprite;p.frontSprite=form.sprite}
+  log(`${form.label} mega evoluiu! ⚡💥`,'crit');
+  ST.processing=false;renderBattle();
+}
+
+/* ── WIN/LOSS ── */
+function battleWon(){
+  ST.battleEnded=true;ST.processing=false;
+  const basePot=ST.currentPot;
+  const coinMult=getTalentCoinMult()*(1+getAchievementBonus('coinBonus'));
+  const pot=Math.floor(basePot*coinMult);
+  ST.coins+=pot;ST.totalWins++;
+  updateRank();
+  // Grant talent point on every rank-up (handled in updateRank)
+  checkAchievements();
+  saveGame();renderCoins();renderRank();
+  playSound('victory');
+  const bonus=coinMult>1?` (×${coinMult.toFixed(2)} bônus!)`:'';
+  log(`🏆 VITÓRIA! +${pot} moedas${bonus}! Total: ${ST.totalWins}W`,'crit');
+  setTimeout(()=>{
+    showScreen('team');
+    ST.playerBattleTeam=[];ST.enemyBattle=null;ST.enemyBattleTeam=[];ST.eIdx=0;ST.currentPot=0;
+    ST.stealthRockPlayer=false;ST.stealthRockEnemy=false;ST.mistyTerrain=0;
+    EL.stakeBanner.style.display='none';
+    renderInventory();renderTray();
+  },900);
+}
+
+function battleLost(){
+  ST.battleEnded=true;ST.processing=false;
+  ST.totalLosses++;
+  saveGame();
+  log(`💀 DERROTA! Você perdeu ${ST.entryFee} moedas. Total de derrotas: ${ST.totalLosses}`,'bad');
+  setTimeout(()=>{
+    showScreen('team');
+    ST.playerBattleTeam=[];ST.enemyBattle=null;ST.enemyBattleTeam=[];ST.eIdx=0;ST.currentPot=0;
+    ST.stealthRockPlayer=false;ST.stealthRockEnemy=false;ST.mistyTerrain=0;
+    EL.stakeBanner.style.display='none';
+    renderInventory();renderTray();
+  },900);
+}
+
+/* ── START BATTLE ── */
+async function startBattle(){
+  const team=getTeam();
+  if(team.length!==6){log('Escolha exatamente 6 Pokémon.','system');return}
+  const fee=await openEntryFeeModal();
+  if(!fee) return;
+  if(ST.coins<fee){log(`Moedas insuficientes. Precisa de ${fee}.`,'bad');return}
+
+  ST.coins-=fee;ST.entryFee=fee;ST.currentPot=fee*2;
+  saveGame();renderCoins();
+
+  ST.processing=true;ST.battleEnded=false;
+  ST.playerBattleTeam=team.map(m=>createClone(m,'player'));
+  ST.pIdx=0;ST.eIdx=0;ST.stealthRockPlayer=false;ST.stealthRockEnemy=false;ST.mistyTerrain=0;
+  ST.enemyBattleTeam=[];ST.enemyBattle=null;
+
+  // Scale enemy to rank
+  const rank=getCurrentRank();
+  const maxId=Math.min(649,150+rank.wins*2);
+  const minId=Math.max(1,rank.wins>50?151:1);
+
+  // Generate 6 unique enemy IDs
+  const usedIds=new Set();
+  const enemyIds=[];
+  while(enemyIds.length<6){
+    const id=minId+rng(Math.max(1,maxId-minId));
+    if(!usedIds.has(id)){usedIds.add(id);enemyIds.push(id)}
+  }
+
+  // Pick weather
+  const ws=WEATHERS[rng(WEATHERS.length)];
+  ST.weather=ws;ST.weatherTurns=ws.duration||5;
+
+  try{
+    EL.saveHint&&(EL.saveHint.textContent='Carregando equipe inimiga...');
+
+    // Build enemy team in parallel
+    const templates=await Promise.all(enemyIds.map(id=>buildTemplate(id).catch(()=>null)));
+    const validTemplates=templates.filter(Boolean);
+    if(!validTemplates.length) throw new Error('Nenhum Pokémon inimigo carregado');
+
+    // Use first as "leader" for backward compat, rest as team
+    ST.enemyBattleTeam=validTemplates.map(t=>createClone(t,'enemy'));
+    ST.enemyBattle=ST.enemyBattleTeam[0]; // back-compat reference
+
+    // Track seen dex
+    validTemplates.forEach(t=>{if(!ST.seenDex.includes(t.id))ST.seenDex.push(t.id)});
+    saveGame();
+
+    showScreen('battle');
+    EL.stakeBanner.style.display='flex';
+    EL.stakePotDisplay.textContent=`${ST.currentPot} moedas`;
+
+    ST.processing=false;
+    renderBattle();
+    log(`Vai, ${capitalize(activePlayer().originalName)}!`,'good');
+    log(`Inimigo tem uma equipe de ${ST.enemyBattleTeam.length} Pokémon!`,'system');
+    log(`Líder: ${capitalize(validTemplates[0].name)} [${capitalize(validTemplates[0].rarity)}]`,'system');
+    if(ws.id!=='none') log(`${ws.icon} ${ws.label} começou! (${ws.duration} turnos)`,'info');
+    log(`Aposta: ${fee} × 2 = ${ST.currentPot} moedas em jogo.`,'info');
+    EL.saveHint&&(EL.saveHint.textContent=`Batalha iniciada! ${validTemplates.length} inimigos.`);
+  }catch(err){
+    console.error(err);
+    log('Erro ao iniciar batalha. Tente novamente.','bad');
+    ST.coins+=fee;saveGame();renderCoins();
+    ST.processing=false;showScreen('team');
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════════════ */
+function openSwitchModal(forced){
+  return new Promise(resolve=>{
+    ST.switchResolver=resolve;
+    const cards=ST.playerBattleTeam.map((m,i)=>{
+      const cur=i===ST.pIdx,fnt=m.currentHp<=0,dis=cur||fnt;
+      const p=getHpPct(m);
+      const hCol=p<=25?'#f87171':p<=50?'#fcd34d':'#4ade80';
+      const spr=m.frontSprite||m.backSprite||'';
+      return`<button class="switchCard ${cur?'active':''} ${fnt?'fainted':''}" data-i="${i}" ${dis?'disabled':''}>
+        <div class="badge">${cur?'CAMPO':fnt?'FAINTED':'OK'}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          ${spr?`<img src="${spr}" alt="${m.originalName}" style="width:44px;height:44px;object-fit:contain;image-rendering:pixelated;flex:0 0 auto" onerror="this.style.display='none'">`:
+            `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex:0 0 auto">🔴</div>`}
+          <div>
+            <div class="pokeName">${capitalize(m.originalName)}${m.isMega?' ⚡':''}</div>
+            <div class="pokeLevel">Lv.${m.level} • ${capitalize(m.rarity)}</div>
+            <div class="typeRow" style="margin:4px 0">${renderTypeChips(m.types)}</div>
+          </div>
+        </div>
+        <div style="font-size:.7rem;font-weight:700;color:${hCol};margin-top:auto">HP: ${Math.max(0,Math.floor(m.currentHp))}/${m.maxHp} (${p.toFixed(0)}%)</div>
+        <div class="hpBar" style="margin-top:4px"><div class="hpFill ${hpClass(p)}" style="width:${p}%"></div></div>
+      </button>`;
+    }).join('');
+    openModal(forced?'Troca Forçada':'Troca Manual',`
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:10px">
+        ${forced?'Seu Pokémon desmaiou! Escolha o próximo.':'A troca consome seu turno. Os buffs são resetados.'}
+      </p>
+      <div class="switchGrid">${cards}</div>`,
+    {type:'switch',canClose:!forced,
+     onMount:()=>EL.modalBody.querySelectorAll('.switchCard').forEach(b=>b.addEventListener('click',()=>{
+       const i=Number(b.getAttribute('data-i'));
+       const r=ST.switchResolver;ST.switchResolver=null;closeModal();resolve(i);
+     }))});
+  });
+}
+
+function openMegaChoiceModal(mon){
+  return new Promise(resolve=>{
+    ST.megaResolver=resolve;
+    const mData=MEGA_DATA[mon.id];
+    if(!mData||mData.forms.length===1){resolve(mData?.forms[0]||null);return}
+    const cards=mData.forms.map((f,fi)=>`
+      <button class="megaChoiceCard" data-fi="${fi}">
+        <img src="${f.sprite}" alt="${f.label}" onerror="this.style.display='none'">
+        <div class="mgName">${f.label}</div>
+        <div class="typeRow">${renderTypeChips(f.types)}</div>
+        <div class="mgBonus">+${f.ab} ATK • +${f.db} DEF</div>
+      </button>`).join('');
+    openModal('⚡ Escolha a Mega Evolução',`
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:8px">${capitalize(mon.originalName)} tem duas formas mega. Escolha:</p>
+      <div class="megaChoiceGrid">${cards}</div>`,
+    {type:'mega',canClose:false,
+     onMount:()=>EL.modalBody.querySelectorAll('.megaChoiceCard').forEach(b=>b.addEventListener('click',()=>{
+       const fi=Number(b.getAttribute('data-fi'));
+       const r=ST.megaResolver;ST.megaResolver=null;closeModal();resolve(mData.forms[fi]);
+     }))});
+  });
+}
+
+function openEntryFeeModal(){
+  return new Promise(resolve=>{
+    ST.feeResolver=resolve;
+    const fees=[];for(let f=50;f<=1000;f+=50)fees.push(f);
+    let sel=ST.entryFee;
+    if(ST.coins<sel) sel=50;
+
+    openModal('💰 Taxa de Entrada',`
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:4px">O inimigo aposta o mesmo valor. Vencedor leva o dobro!</p>
+      <div class="feeGrid" id="feeGrid">${fees.map(f=>`
+        <button class="feeBtn ${f===sel?'selected':''}" data-f="${f}" ${ST.coins<f?'disabled':''}>
+          ${f}<small>moedas</small>
+        </button>`).join('')}</div>
+      <div class="feeInfo">
+        <div><div class="label">Sua aposta</div><div class="value" id="fm">—</div></div>
+        <div><div class="label">Pote total</div><div class="value yellow" id="fp">—</div></div>
+        <div><div class="label">Ganho líquido</div><div class="value green" id="fg">—</div></div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btnPrimary" id="confirmFeeBtn" style="width:100%;min-height:48px">⚔️ Entrar na Batalha</button>
+      </div>`,
+    {type:'fee',canClose:true,
+     onMount:()=>{
+       function upd(f){
+         sel=f;
+         const fm=$('fm'),fp=$('fp'),fg=$('fg');
+         if(fm)fm.textContent=`${f}🪙`;if(fp)fp.textContent=`${f*2}🪙`;if(fg)fg.textContent=`+${f}🪙`;
+         document.querySelectorAll('.feeBtn').forEach(b=>b.classList.toggle('selected',Number(b.getAttribute('data-f'))===f));
+       }
+       upd(sel);
+       $('feeGrid').addEventListener('click',ev=>{
+         const b=ev.target.closest('.feeBtn');if(!b||b.disabled)return;upd(Number(b.getAttribute('data-f')));
+       });
+       const cb=$('confirmFeeBtn');
+       if(cb)cb.addEventListener('click',()=>{const r=ST.feeResolver;ST.feeResolver=null;closeModal();resolve(sel)});
+     }});
+  });
+}
+
+function openShopModal(){
+  if(ST.shopBusy) return;
+  const ownedSet=new Set(ST.ownedIds);
+  const pool=[];for(let i=1;i<=GACHA_MAX;i++)if(!ownedSet.has(i))pool.push(i);
+  const rem=pool.length;
+
+  openModal('🎰 Gacha Shop',`
+    <div class="shopWrap">
+      <div class="shopTop">
+        <div class="spinStage"><div id="shopBall" class="pokeball"></div></div>
+        <div class="shopInfo">
+          <p><b>Gen 1-5</b> sem repetições. ${rem} disponíveis de 649.</p>
+          <div class="rarityChances">
+            <div class="rarChip c">Comum<br><b>~55%</b></div>
+            <div class="rarChip r">Raro<br><b>~30%</b></div>
+            <div class="rarChip e">Épico<br><b>~12%</b></div>
+            <div class="rarChip l">Lendário<br><b>~3%</b></div>
+          </div>
+          ${!rem?`<p style="color:#fcd34d;font-weight:800">🎉 Você tem todos!</p>`:`
+          <button class="btn btnWarn" id="buySpinBtn" style="width:100%;min-height:46px">Girar — 100 moedas</button>`}
+          <div id="shopResult" class="resultCard"></div>
+        </div>
+      </div>
+    </div>`,
+  {type:'shop',onMount:()=>{
+    const ball=$('shopBall'),btn=$('buySpinBtn'),res=$('shopResult');
+    if(!btn) return;
+    btn.textContent=`Girar — ${Math.max(10,100-getTalentGachaDisc())} moedas`;
+    btn.addEventListener('click',async()=>{
+      if(ST.shopBusy)return;
+      const gachaCostChk=Math.max(10,100-getTalentGachaDisc());
+if(ST.coins<gachaCostChk){log(`Moedas insuficientes. Precisa de ${gachaCostChk}.`,'system');return}
+      // Rebuild pool
+      const owN=new Set(ST.ownedIds);
+      const pN=[];for(let i=1;i<=GACHA_MAX;i++)if(!owN.has(i))pN.push(i);
+      if(!pN.length){log('Você já tem todos!','good');return}
+
+      // Weighted rarity pull
+      function weightedPick(pool){
+        // Assign weights: legendary 3%, epic 12%, rare 30%, common 55%
+        const weighted=pool.map(id=>{
+          const r=getRarity(id);
+          return{id,w:{legendary:3,epic:12,rare:30,common:55}[r]||55};
+        });
+        const total=weighted.reduce((a,b)=>a+b.w,0);
+        let rand=Math.random()*total;
+        for(const{id,w}of weighted){rand-=w;if(rand<=0)return id}
+        return weighted[weighted.length-1].id;
+      }
+
+      ST.shopBusy=true;
+const gachaCost=Math.max(10,100-getTalentGachaDisc());
+ST.coins-=gachaCost;ST.totalPulls++;checkAchievements();saveGame();renderCoins();
+      ball.classList.add('spin');btn.disabled=true;res.classList.remove('show');
+
+      try{
+        const newId=weightedPick(pN);
+        const mon=await makeInventoryMon(newId);
+        ST.inventory.unshift(mon);
+        saveGame();renderInventory();renderTray();
+        const r=mon.rarity||'common';
+        const rColors={common:'#94a3b8',rare:'#60a5fa',epic:'#c084fc',legendary:'#fcd34d'};
+        res.innerHTML=`
+          <img src="${mon.frontSprite||''}" alt="${mon.name}" style="filter:${mon.isShiny?'drop-shadow(0 0 12px rgba(251,191,36,.9))':''}" onerror="this.style.display='none'">
+          <div>
+            <h4 style="color:${rColors[r]}">#${mon.id} ${capitalize(mon.name)} ${mon.isShiny?'<span class=\'shinyBadge\'>✨ SHINY</span>':''}</h4>
+            <div class="mini">
+              <b style="color:${rColors[r]}">${rarityLabel(r)}</b><br>
+              Tipos: ${mon.types.join(', ')}<br>
+              Base: HP ${mon.base?.hp} / ATK ${mon.base?.atk} / SPE ${mon.base?.spe}<br>
+              ${mon.canMega?'<span style="color:#c4b5fd;font-weight:800">⚡ Pode Mega Evoluir!</span>':''}
+            </div>
+          </div>`;
+        res.classList.add('show');
+        log(`🎰 ${capitalize(rarityLabel(r))}! ${mon.isShiny?'✨✨ SHINY!! ':''} #${mon.id} ${capitalize(mon.name)}!`,mon.isShiny?'crit':r==='legendary'?'crit':r==='epic'?'crit':'good');
+      }catch(e){
+        log('Falha no gacha. Tente novamente.','bad');
+        ST.coins+=100;saveGame();renderCoins();
+      }finally{
+        ST.shopBusy=false;ball.classList.remove('spin');btn.disabled=false;
+      }
+    });
+  }});
+}
+
+function openDexModal(){
+  const caught=new Set(ST.caughtDex),seen=new Set(ST.seenDex);
+  const all=new Set([...caught,...seen]);
+  const sorted=[...all].sort((a,b)=>a-b);
+  const cards=sorted.map(id=>{
+    const t=dexCache[id];
+    const c=caught.has(id);
+    const r=t?.rarity||getRarity(id);
+    const rCol={common:'',rare:';border-color:rgba(96,165,250,.3)',epic:';border-color:rgba(168,85,247,.3)',legendary:';border-color:rgba(251,191,36,.4)'}[r]||'';
+    return`<div class="dexCard ${c?'caught':'seen'}" style="position:relative${rCol}">
+      ${t?.frontSprite?`<img src="${t.frontSprite}" alt="${t.name}">`:'<div style="width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">❓</div>'}
+      <div class="dexNum">#${String(id).padStart(3,'0')}</div>
+      <div class="dexName">${capitalize(t?.name||'???')}</div>
+      <div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">
+        ${(t?.types||[]).map(tp=>`<span class="typeChip ${getTypeClass(tp)}" style="font-size:.5rem;padding:2px 5px">${tp}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  openModal('📖 Pokédex',`
+    <div class="dexHeader">
+      <div><div class="label">Capturados</div><div class="value" style="color:#4ade80">${caught.size}</div></div>
+      <div><div class="label">Vistos</div><div class="value" style="color:#60a5fa">${all.size}</div></div>
+      <div><div class="label">Gen 1-5</div><div class="value">649</div></div>
+    </div>
+    <div style="display:flex;gap:8px;font-size:.7rem;color:var(--muted);font-weight:700;margin-bottom:8px">
+      <span>🟢 Capturado (Gacha)</span><span>🔵 Visto (Batalha)</span>
+    </div>
+    ${all.size?`<div class="dexGrid">${cards}</div>`
+      :'<div style="text-align:center;padding:30px;color:var(--muted)">Nenhum Pokémon descoberto ainda!</div>'}`,
+  {type:'dex',canClose:true});
+}
+
+function openRankModal(){
+  const cur=getCurrentRank();
+  const items=RANKS.map((r,i)=>{
+    const isCur=i===ST.rankIdx;
+    const done=i<ST.rankIdx;
+    return`<div class="rankItem ${isCur?'current':''}">
+      <div class="rankItemIcon">${done?'✅':isCur?r.icon:'🔒'}</div>
+      <div class="rankItemInfo">
+        <div class="rankItemName">${r.label}</div>
+        <div class="rankItemDesc">Recompensa de rank: +${r.reward} moedas</div>
+        <div class="rankItemReq">${r.wins===0?'Inicial':`${r.wins} vitórias`}</div>
+      </div>
+    </div>`;
+  }).join('');
+  openModal('🏆 Sistema de Rank',`
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:12px">
+      Rank atual: <b>${cur.label}</b> ${cur.icon} | ${ST.totalWins}W / ${ST.totalLosses}L
+    </p>
+    <div class="rankList">${items}</div>`,
+  {type:'rank',canClose:true});
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT + EVENTS
+══════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════
+   MULTIPLAYER (PeerJS P2P)
+══════════════════════════════════════════════════════ */
+const MP = {
+  peer:null, conn:null, isHost:false,
+  active:false, opponentTeam:null,
+  myAction:null, oppAction:null,
+  waitingForOpp:false, chatLog:[],
+  myPeerId:null, opponentName:'Oponente',
+};
+
+function mpLog(msg,cls='sys'){
+  MP.chatLog.push({msg,cls});
+  const box=document.getElementById('onlineChatBox');
+  if(box){
+    const d=document.createElement('div');
+    d.className=`chatLine ${cls}`;d.textContent=msg;
+    box.appendChild(d);box.scrollTop=box.scrollHeight;
+  }
+}
+
+function initPeer(){
+  if(MP.peer&&!MP.peer.destroyed) return;
+  try{
+    MP.peer=new Peer({
+      host:'0.peerjs.com',port:443,path:'/',secure:true,
+      config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}
+    });
+    MP.peer.on('open',id=>{
+      MP.myPeerId=id.slice(0,8).toUpperCase();
+      const idEl=document.getElementById('myPeerId');
+      if(idEl) idEl.textContent=MP.myPeerId;
+      setOnlineStatus('waiting','Aguardando conexão...');
+      mpLog(`Seu ID: ${MP.myPeerId}`,'sys');
+    });
+    MP.peer.on('connection',conn=>{
+      MP.conn=conn;MP.isHost=true;
+      setupConn(conn);
+      setOnlineStatus('connected','Conectado como HOST!');
+      mpLog('Oponente conectou!','sys');
+    });
+    MP.peer.on('error',e=>{
+      setOnlineStatus('error','Erro de conexão: '+e.type);
+      mpLog('Erro: '+e.message,'sys');
+    });
+  }catch(e){setOnlineStatus('error','PeerJS não disponível.');console.error(e)}
+}
+
+function connectToPeer(targetId){
+  if(!MP.peer){setOnlineStatus('error','Peer não inicializado.');return}
+  setOnlineStatus('waiting','Conectando...');
+  const conn=MP.peer.connect(targetId.trim().toUpperCase(),{reliable:true});
+  MP.isHost=false;
+  setupConn(conn);
+}
+
+function setupConn(conn){
+  MP.conn=conn;
+  conn.on('open',()=>{
+    mpLog('Conexão estabelecida!','sys');
+    setOnlineStatus('connected','✅ Conectado!');
+    // Exchange names
+    conn.send({type:'hello',name:ST.currentUser||'Visitante'});
+  });
+  conn.on('data',d=>handleMPData(d));
+  conn.on('close',()=>{
+    setOnlineStatus('idle','Desconectado.');
+    mpLog('Oponente desconectou.','sys');
+    if(MP.active){
+      MP.active=false;
+      if(!ST.battleEnded){battleLost();}
+    }
+  });
+  conn.on('error',e=>mpLog('Erro de conexão: '+e,'sys'));
+}
+
+function setOnlineStatus(cls,msg){
+  const el=document.getElementById('onlineStatusBadge');
+  if(el){el.className='onlineStatusBadge '+cls;el.textContent=msg}
+}
+
+function mpSend(data){
+  if(MP.conn&&MP.conn.open) MP.conn.send(data);
+}
+
+function handleMPData(data){
+  if(!data||!data.type) return;
+
+  if(data.type==='hello'){
+    MP.opponentName=data.name||'Oponente';
+    mpLog(`${MP.opponentName} entrou na sala.`,'sys');
+    // If host, start battle setup
+    if(MP.isHost){
+      mpSend({type:'hello',name:ST.currentUser||'Visitante'});
+      openMPBattleSetup();
+    }
+  }
+  else if(data.type==='challenge'){
+    // Guest receives challenge from host
+    const team=getTeam();
+    if(team.length!==6){log('Monte uma equipe de 6 para batalhar online!','bad');return}
+    mpSend({type:'accept',team:team.map(serializeMon)});
+    mpLog(`${MP.opponentName} desafiou você! Batalha iniciando...`,'sys');
+    startMPBattle(data.hostTeam, team, false);
+  }
+  else if(data.type==='accept'){
+    // Host receives guest team
+    MP.opponentTeam=data.team.map(m=>hydrateSerializedMon(m));
+    mpLog(`${MP.opponentName} aceitou! Batalha iniciando...`,'sys');
+    const hostTeam=getTeam();
+    startMPBattle(hostTeam, MP.opponentTeam, true);
+  }
+  else if(data.type==='action'){
+    MP.oppAction=data;
+    if(MP.waitingForOpp) executeMPTurn();
+  }
+  else if(data.type==='chat'){
+    mpLog(`${MP.opponentName}: ${data.msg}`,'opp');
+  }
+  else if(data.type==='state_sync'){
+    // Guest receives state from host
+    if(!MP.isHost) applyMPState(data.state);
+  }
+  else if(data.type==='battle_end'){
+    handleMPEnd(data.winner);
+  }
+}
+
+function serializeMon(m){
+  return {id:m.id,name:m.name,level:m.level,types:m.types,
+    base:m.base,bst:m.bst,rarity:m.rarity,
+    frontSprite:m.frontSprite,backSprite:m.backSprite,
+    moves:m.moves,canMega:m.canMega,isShiny:m.isShiny};
+}
+
+function hydrateSerializedMon(m){return Object.assign({},m)}
+
+function openMPBattleSetup(){
+  const team=getTeam();
+  if(team.length!==6){log('Monte uma equipe de 6 primeiro!','bad');return}
+  mpLog('Desafiando oponente...','sys');
+  mpSend({type:'challenge',hostTeam:team.map(serializeMon)});
+}
+
+function startMPBattle(myRawTeam,oppRawTeam,iAmHost){
+  MP.active=true;MP.isHost=iAmHost;
+  closeModal();
+  ST.processing=false;ST.battleEnded=false;
+  ST.playerBattleTeam=myRawTeam.map(m=>createClone(m,'player'));
+  ST.enemyBattleTeam=oppRawTeam.map(m=>createClone(m,'enemy'));
+  ST.enemyBattle=ST.enemyBattleTeam[0];
+  ST.pIdx=0;ST.eIdx=0;
+  ST.stealthRockPlayer=false;ST.stealthRockEnemy=false;ST.mistyTerrain=0;
+  ST.currentPot=0;
+  const ws=WEATHERS[rng(WEATHERS.length)];
+  ST.weather=ws;ST.weatherTurns=ws.duration||5;
+  showScreen('battle');
+  EL.stakeBanner.style.display='flex';
+  EL.stakePotDisplay.textContent='Batalha Online!';
+  renderBattle();
+  log(`🌐 BATALHA ONLINE vs ${MP.opponentName}!`,'crit');
+  log(`Você é ${iAmHost?'HOST':'GUEST'}. Monte sua estratégia!`,'system');
+}
+
+function openMPBattleSetupAndChallenge(){
+  if(!MP.conn||!MP.conn.open){log('Não conectado a nenhum oponente.','bad');return}
+  openMPBattleSetup();
+}
+
+async function playerUseMoveMP(index){
+  if(ST.processing||ST.mode!=='battle'||ST.battleEnded) return;
+  const p=activePlayer();
+  if(!p||p.currentHp<=0){
+    const r=await checkAndHandleFaints();
+    if(r==='win'||r==='loss') return;
+    return;
+  }
+  // Send my action to opponent
+  MP.myAction={type:'action',action:'move',idx:index};
+  mpSend(MP.myAction);
+  ST.processing=true;renderMoveButtons();
+  log('Aguardando oponente...','system');
+  MP.waitingForOpp=true;
+  // If opponent already sent action, execute
+  if(MP.oppAction) executeMPTurn();
+}
+
+async function executeMPTurn(){
+  MP.waitingForOpp=false;
+  const myAct=MP.myAction;
+  const oppAct=MP.oppAction;
+  MP.myAction=null;MP.oppAction=null;
+
+  const p=activePlayer(),e=activeEnemy();
+  if(!p||!e){ST.processing=false;return}
+
+  if(MP.isHost){
+    // Host runs calculations and syncs state
+    await runMPTurnHost(myAct,oppAct,p,e);
+  } else {
+    // Guest just waits for state sync
+    // (already handled by state_sync message)
+    ST.processing=false;renderBattle();
+  }
+}
+
+async function runMPTurnHost(myAct,oppAct,p,e){
+  const ps=getSPE(p),es=getSPE(e);
+  const myMove=myAct?.action==='move'?p.moves[myAct.idx]:null;
+  const oppMove=oppAct?.action==='move'?e.moves[oppAct.idx]:null;
+
+  const playerFirst=(myMove?.priority||0)>(oppMove?.priority||0)||(ps>=es);
+
+  if(playerFirst){
+    await executeMove(p,e,myMove,'player','enemy');
+    const r1=await checkAndHandleFaints();
+    if(r1==='win'||r1==='loss'){syncMPState(r1);return}
+    await executeMove(e,p,oppMove,'enemy','player');
+    const r2=await checkAndHandleFaints();
+    if(r2==='win'||r2==='loss'){syncMPState(r2);return}
+  } else {
+    await executeMove(e,p,oppMove,'enemy','player');
+    const r1=await checkAndHandleFaints();
+    if(r1==='win'||r1==='loss'){syncMPState(r1);return}
+    await executeMove(p,e,myMove,'player','enemy');
+    const r2=await checkAndHandleFaints();
+    if(r2==='win'||r2==='loss'){syncMPState(r2);return}
+  }
+
+  await endOfRound();
+  const r3=await checkAndHandleFaints();
+  if(r3==='win'||r3==='loss'){syncMPState(r3);return}
+
+  syncMPState(null);
+  ST.processing=false;renderBattle();
+}
+
+function syncMPState(result){
+  const state={
+    playerTeam:ST.enemyBattleTeam.map(m=>({currentHp:m.currentHp,status:m.status,buffs:m.buffs,toxicCounter:m.toxicCounter,leechSeed:m.leechSeed})),
+    enemyTeam:ST.playerBattleTeam.map(m=>({currentHp:m.currentHp,status:m.status,buffs:m.buffs,toxicCounter:m.toxicCounter,leechSeed:m.leechSeed})),
+    eIdx:ST.pIdx, pIdx:ST.eIdx,
+    weather:ST.weather,weatherTurns:ST.weatherTurns,
+    result,
+  };
+  mpSend({type:'state_sync',state});
+  if(result) handleMPEnd(result==='win'?'guest':'host');
+}
+
+function applyMPState(state){
+  if(!state) return;
+  state.playerTeam?.forEach((s,i)=>{
+    const m=ST.playerBattleTeam[i];
+    if(m) Object.assign(m,s);
+  });
+  state.enemyTeam?.forEach((s,i)=>{
+    const m=ST.enemyBattleTeam[i];
+    if(m) Object.assign(m,s);
+  });
+  if(typeof state.pIdx==='number') ST.pIdx=state.pIdx;
+  if(typeof state.eIdx==='number') ST.eIdx=state.eIdx;
+  if(state.weather) ST.weather=state.weather;
+  if(typeof state.weatherTurns==='number') ST.weatherTurns=state.weatherTurns;
+  renderBattle();
+  if(state.result) handleMPEnd(state.result==='win'?'host':'guest');
+  ST.processing=false;
+}
+
+function handleMPEnd(winner){
+  const iWon=(MP.isHost&&winner==='host')||(!MP.isHost&&winner==='guest');
+  MP.active=false;
+  if(iWon){
+    ST.onlineWins++;checkAchievements();
+    log(`🏆 VITÓRIA ONLINE vs ${MP.opponentName}!`,'crit');
+    playSound('victory');
+  } else {
+    log(`💀 DERROTA vs ${MP.opponentName}. Boa sorte da próxima!`,'bad');
+  }
+  saveGame();
+  setTimeout(()=>{
+    showScreen('team');
+    ST.playerBattleTeam=[];ST.enemyBattleTeam=[];ST.enemyBattle=null;ST.eIdx=0;ST.currentPot=0;
+    EL.stakeBanner.style.display='none';
+    renderInventory();renderTray();
+  },1200);
+}
+
+function openOnlineModal(){
+  if(typeof Peer==='undefined'){
+    openModal('🌐 Batalha Online',`
+      <div style="text-align:center;padding:20px;color:var(--muted)">
+        <div style="font-size:2rem;margin-bottom:10px">⚠️</div>
+        <p>PeerJS não carregou. Verifique sua conexão e recarregue a página.</p>
+      </div>
+    `,{type:'online',canClose:true});
+    return;
+  }
+
+  if(!MP.peer||MP.peer.destroyed) initPeer();
+
+  const status=MP.conn&&MP.conn.open?'connected':'waiting';
+
+  openModal('🌐 Batalha Online',`
+    <div class="onlineLobby">
+      <div id="onlineStatusBadge" class="onlineStatusBadge ${status}">${status==='connected'?'✅ Conectado!':'Inicializando...'}</div>
+      <div>
+        <div style="font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Seu ID (clique para copiar):</div>
+        <div class="peerIdBox" id="myPeerId" onclick="navigator.clipboard?.writeText(this.textContent);this.textContent='✅ Copiado!';setTimeout(()=>this.textContent=MP.myPeerId,1200)">
+          ${MP.myPeerId||'Gerando...'}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Conectar ao ID do oponente:</div>
+        <div style="display:flex;gap:8px">
+          <input id="connectIdInput" type="text" placeholder="ID do oponente..." style="flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font-size:.88rem;font-weight:700;text-transform:uppercase;outline:none"/>
+          <button class="btn btnPrimary" id="connectBtn" style="white-space:nowrap;min-height:42px">Conectar</button>
+        </div>
+      </div>
+      ${MP.conn&&MP.conn.open?`<button class="btn btnSuccess" id="challengeBtn" style="min-height:46px;width:100%">⚔️ Desafiar ${MP.opponentName||'Oponente'}</button>`:''}
+      <div>
+        <div style="font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:4px">Chat de batalha:</div>
+        <div id="onlineChatBox" class="onlineChatBox">
+          ${MP.chatLog.map(l=>`<div class="chatLine ${l.cls}">${l.msg}</div>`).join('')}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="chatInput" type="text" placeholder="Mensagem..." style="flex:1;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font-size:.8rem;outline:none"/>
+          <button class="btn" id="chatSendBtn" style="padding:8px 12px;font-size:.76rem">Enviar</button>
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;line-height:1.5">
+        📋 Como usar: Copie seu ID e envie para um amigo. Ele insere o ID e conecta.<br>Ambos devem ter uma equipe de 6 pronta.
+      </div>
+    </div>
+  `,{type:'online',canClose:true,onMount:()=>{
+    const chatBox=document.getElementById('onlineChatBox');
+    if(chatBox) chatBox.scrollTop=chatBox.scrollHeight;
+
+    const connectBtn=document.getElementById('connectBtn');
+    if(connectBtn) connectBtn.addEventListener('click',()=>{
+      const id=document.getElementById('connectIdInput')?.value?.trim();
+      if(!id){return}
+      connectToPeer(id);
+    });
+
+    const challengeBtn=document.getElementById('challengeBtn');
+    if(challengeBtn) challengeBtn.addEventListener('click',()=>{
+      closeModal();openMPBattleSetupAndChallenge();
+    });
+
+    const chatSend=document.getElementById('chatSendBtn');
+    if(chatSend) chatSend.addEventListener('click',()=>{
+      const msg=document.getElementById('chatInput')?.value?.trim();
+      if(!msg)return;
+      mpSend({type:'chat',msg});
+      mpLog('Você: '+msg,'mine');
+      document.getElementById('chatInput').value='';
+    });
+    document.getElementById('chatInput')?.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){document.getElementById('chatSendBtn').click()}
+    });
+  }});
+}
+
+
+function hardReset(){
+  if(!confirm('Apagar TUDO? Moedas, inventário, rank... Isso não pode ser desfeito!')) return;
+  try{localStorage.removeItem(SAVE_KEY);localStorage.removeItem(DEX_KEY)}catch{}
+  // Reset state in-place
+  ST.coins=0;ST.inventory=[];ST.teamUids=[];ST.ownedIds=[];
+  ST.caughtDex=[];ST.seenDex=[];ST.totalWins=0;ST.totalLosses=0;
+  ST.rankIdx=0;ST.entryFee=100;ST.currentPot=0;ST.invVisible=true;
+  ST.playerBattleTeam=[];ST.enemyBattle=null;ST.enemyBattleTeam=[];
+  ST.eIdx=0;ST.pIdx=0;ST.processing=false;ST.battleEnded=false;
+  ST.weather=WEATHERS[0];ST.weatherTurns=0;
+  window.location.reload();
+}
+
+function bindEvents(){
+  EL.startBattleBtn.addEventListener('click',()=>{playSound('click');startBattle()});
+  EL.openShopBtn.addEventListener('click',()=>{playSound('click');openShopModal()});
+  EL.shopBtn.addEventListener('click',()=>{playSound('click');openShopModal()});
+  EL.switchBtn.addEventListener('click',()=>{playSound('click');playerManualSwitch()});
+  EL.megaBtn.addEventListener('click',()=>{playSound('click');useMega()});
+  EL.dexBtn.addEventListener('click',()=>{playSound('click');openDexModal()});
+  EL.rankBtn.addEventListener('click',()=>{playSound('click');openRankModal()});
+  EL.invToggleBtn.addEventListener('click',()=>{ST.invVisible=!ST.invVisible;saveGame();renderInventory()});
+  EL.resetBtn.addEventListener('click',hardReset);
+  document.getElementById('dailyBtn')?.addEventListener('click',()=>{playSound('click');openDailyModal()});
+  document.getElementById('achieveBtn')?.addEventListener('click',()=>{playSound('click');openAchievementsModal()});
+  document.getElementById('talentBtn')?.addEventListener('click',()=>{playSound('click');openTalentModal()});
+  document.getElementById('onlineBtn')?.addEventListener('click',()=>{playSound('click');openOnlineModal()});
+  EL.backTeamBtn.addEventListener('click',()=>{
+    if(ST.mode==='battle'&&!confirm('Sair da batalha? Você PERDE a aposta!')) return;
+    if(ST.mode==='battle'){
+      ST.playerBattleTeam=[];ST.enemyBattle=null;ST.enemyBattleTeam=[];ST.eIdx=0;
+      ST.processing=false;ST.battleEnded=false;ST.currentPot=0;
+      EL.stakeBanner.style.display='none';
+    }
+    showScreen('team');renderInventory();renderTray();
+  });
+  EL.modalCloseBtn.addEventListener('click',()=>{
+    if(ST.modalType==='switch'&&ST.switchResolver) return;
+    if(ST.modalType==='fee'&&ST.feeResolver){ST.feeResolver(null);ST.feeResolver=null}
+    if(ST.modalType==='mega'&&ST.megaResolver){ST.megaResolver(null);ST.megaResolver=null}
+    closeModal();
+  });
+  EL.modalOverlay.addEventListener('click',ev=>{
+    if(ev.target!==EL.modalOverlay) return;
+    if(ST.modalType==='switch'&&ST.switchResolver) return;
+    if(ST.modalType==='fee'&&ST.feeResolver){ST.feeResolver(null);ST.feeResolver=null}
+    if(ST.modalType==='mega'&&ST.megaResolver){ST.megaResolver(null);ST.megaResolver=null}
+    closeModal();
+  });
+  window.addEventListener('beforeunload',saveGame);
+}
+
+async function postLoginInit(){
+  const saved=ST.currentUser?null:loadJSON(SAVE_KEY,null);
+  if(saved?.coins!=null){
+    loadAccountData(saved);
+  }
+  if(!ST.inventory.length){
+    EL.saveHint.textContent='Carregando Pokémon iniciais...';
+    await bootstrapFreshSave();
+  } else {
+    EL.saveHint.textContent='Hidratando dados...';
+    await hydrateInventory();
+    syncTeam();
+    ST.inventory.forEach(m=>{if(m.id&&!ST.ownedIds.includes(m.id))ST.ownedIds.push(m.id)});
+    saveGame();
+  }
+  updateRank();renderRank();renderCoins();renderInventory();renderTray();
+  checkDailyLogin();
+  checkAchievements();
+  const user=ST.currentUser?`👤 ${ST.currentUser} | `:'';
+  EL.saveHint.textContent=`${user}${ST.totalWins}W ${ST.totalLosses}L — Rank: ${getCurrentRank().label} | 🔥 Streak: ${ST.loginStreak}d`;
+  log(`🎮 Olá, ${ST.currentUser||'Visitante'}! Poké-Stakes pronto!`,'info');
+  log('💡 Dica: Verifique os Talentos e Conquistas para bônus!','system');
+  if(ST.talentPoints>0) log(`⭐ Você tem ${ST.talentPoints} pontos de Talento disponíveis!`,'crit');
+}
+
+async function init(){
+  cacheEls();bindEvents();bindLoginEvents();
+  showLoginScreen();
+}
+
+init().catch(e=>{console.error(e);EL.saveHint&&(EL.saveHint.textContent='Erro ao iniciar. Verifique a conexão.')});
+})();
+</script>
+</body>
+</html>
